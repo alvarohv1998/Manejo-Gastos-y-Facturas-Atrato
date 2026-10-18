@@ -262,7 +262,11 @@ for (const c of orden) {
   const h = historial(d.emisor_rfc, d.emisor_nombre);
   const fija = d.uuid || d.emisor_rfc ? reglaFija(d, c, h) : null;
   let clas, motivo, confianza;
-  if (c.accion === 'reclasificar' && !fija && !(r && r.ok)) continue;   // el agente sigue sin responder: se intenta en la siguiente corrida
+  if (c.accion === 'reclasificar' && !fija && !(r && r.ok)) {
+    // PDF con contraseña: no se va a poder leer nunca; se deja para revisión a mano y ya no se reintenta
+    if (r && /password protected/i.test(String(r.error || ''))) cerrar(c, 'por_validar', 'PDF protegido con contraseña: revisar a mano (el agente no lo puede abrir)');
+    continue;                                    // el agente sigue sin responder: se intenta en la siguiente corrida
+  }
   if (fija) { [clas, motivo] = fija; confianza = 1; }
   else if (r && r.ok) {
     clas = r.clasificacion === 'no_es_factura' ? 'por_validar' : r.clasificacion;
