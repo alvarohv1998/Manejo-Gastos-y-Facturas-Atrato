@@ -6,7 +6,7 @@
       "type": "n8n-nodes-base.errorTrigger",
       "typeVersion": 1,
       "parameters": {},
-      "id": "01817a8a-f360-41f1-87d6-e774fc2c6872",
+      "id": "a3aca8cb-c447-4dc8-8f2f-3cec6b6822b7",
       "position": [
         240,
         300
@@ -19,7 +19,7 @@
       "parameters": {
         "jsCode": "// Flujo de errores: avisa por correo (y en Slack, cuando el bot esté aprobado) en qué paso falló la corrida de gastos.\nconst CANAL = 'C03KJNZRX5J';   // #budget-y-presupuestos\nconst e = $json.execution || {};\nconst err = e.error || {};\nconst texto = [\n  ':rotating_light: *El flujo de gastos falló*',\n  `*Paso:* ${e.lastNodeExecuted || 'desconocido'}`,\n  `*Error:* ${String(err.message || 'sin mensaje').slice(0, 500)}`,\n  e.url ? `<${e.url}|Ver la ejecución en n8n>` : '',\n  'Lo que no se procesó se recoge en la siguiente corrida.'\n].filter(Boolean).join('\\n');\nconst esc = t => String(t ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');\nconst html = `<div style=\"font-family:Arial,sans-serif;font-size:14px;color:#333\">\n<p><b>El flujo de gastos falló.</b></p>\n<p><b>Paso:</b> ${esc(e.lastNodeExecuted || 'desconocido')}<br><b>Error:</b> ${esc(String(err.message || 'sin mensaje').slice(0, 500))}</p>\n${e.url ? `<p><a href=\"${esc(e.url)}\">Ver la ejecución en n8n</a></p>` : ''}\n<p style=\"color:#667085\">Lo que no se procesó se recoge en la siguiente corrida.</p></div>`;\nreturn [{ json: { cuerpo: { channel: CANAL, text: texto }, para: 'alvaro@atratopago.com', asunto: `Falló el flujo de gastos · ${e.lastNodeExecuted || ''}`.trim(), html } }];\n"
       },
-      "id": "f636eb0c-2f14-4a08-a579-c61ff1268727",
+      "id": "321d912f-318b-468f-9c5a-a5b9e4b2b210",
       "position": [
         480,
         300
@@ -44,7 +44,7 @@
           "appendAttribution": false
         }
       },
-      "id": "d803119d-4ec2-4e2a-8a45-b9cc88156271",
+      "id": "ae0a5f13-5fc2-4b04-b490-d45fc8b5bcb3",
       "position": [
         720,
         200
@@ -72,7 +72,7 @@
           "name": "Authorization"
         }
       },
-      "id": "6d567dcd-1167-4f46-979d-d160cc5ffe8c",
+      "id": "5b879b6e-414b-46f2-a87c-e80cf4074a71",
       "position": [
         720,
         400

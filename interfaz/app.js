@@ -226,6 +226,7 @@ function estadoDoc(f) {
   if (e === 'descartada') return { k: 'desc', l: 'Descartada', c: 'neu' };
   if (e === 'no_es_factura') return { k: 'nof', l: 'No es factura', c: 'neu' };
   if (e === 'complemento') return { k: 'comp', l: 'Complemento', c: 'neu' };
+  if (e === 'nota_credito') return { k: 'nc', l: 'Nota de crédito', c: 'neu' };
   if (e === 'pendiente_pago') return { k: 'pend', l: 'Pendiente de pago', c: 'warn' };
   if (e === 'por_conciliar') return { k: 'conc', l: 'Tarjeta · por conciliar', c: 'warn' };
   if (e === 'pagada') return { k: 'pag', l: 'Pagada', c: 'ok' };
@@ -886,7 +887,7 @@ function viewCarpeta() {
     return !q || [f.archivo, f.emisor, f.rfc, f.uuid, f.gastoId].join(' ').toLowerCase().includes(q);
   }).sort((a, b) => (b.fecha || '').localeCompare(a.fecha || ''));
   const rows = all.slice(0, S.flimite);
-  const estados = [['', 'Todos los estados'], ['pend', 'Pendiente de pago'], ['val', 'Por validar'], ['conc', 'Tarjeta · por conciliar'], ['pag', 'Pagada'], ['rel', 'Relacionada'], ['comp', 'Complemento'], ['desc', 'Descartada'], ['nof', 'No es factura']];
+  const estados = [['', 'Todos los estados'], ['pend', 'Pendiente de pago'], ['val', 'Por validar'], ['conc', 'Tarjeta · por conciliar'], ['pag', 'Pagada'], ['rel', 'Relacionada'], ['comp', 'Complemento'], ['nc', 'Nota de crédito'], ['desc', 'Descartada'], ['nof', 'No es factura']];
   return `
   <div class="folder">
     <nav class="tree" aria-label="Carpetas">${folderTree()}</nav>

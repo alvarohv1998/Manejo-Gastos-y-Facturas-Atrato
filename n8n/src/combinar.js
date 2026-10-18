@@ -130,10 +130,16 @@ let reclasificar = 0, sinDatos = 0;
 for (const f of est.facturas) {
   const fallaAgente = /^El agente no respondió/.test(String(f.Motivo || ''));
   const ppdPendiente = cfg.ppd_siempre_slack !== false && String(f['Método pago'] || '').toUpperCase() === 'PPD' && !f['Gasto ID'];   // regla PPD: se avisa en Slack
-  if (f.Estado !== 'por_validar' || !(fallaAgente || ppdPendiente)) continue;
+  // Las que quedaron "por validar" antes de las reglas nuevas (mandar de más, tarjeta, notas de crédito) pasan por ellas una vez.
+  // No se repiten: las que ya se revisaron con las reglas nuevas tienen otro estado o un motivo de "revisar a mano".
+  const yaRevisada = /^(PDF protegido|No se pudo leer el monto|No se pudo decidir)|Se avisa en Slack aunque/.test(String(f.Motivo || ''));
+  const sinTocar = ['', 'por_validar'].includes(String(f['Clasificación'] || ''));   // si una persona ya cambió la clasificación, manda la persona
+  const reglasNuevas = cfg.por_validar_a_slack !== false && !yaRevisada && sinTocar;
+  if (f.Estado !== 'por_validar' || !(fallaAgente || ppdPendiente || reglasNuevas)) continue;
   if (reclasificar >= (cfg.max_reclasificar || 40)) break;
   const u = String(f.UUID || '').toUpperCase();
-  const d = (u && sat.get(u)) || (f['RFC emisor'] && Number(f.Total) > 0 ? desdeFila(f) : null);
+  const conTotal = f.Total !== '' && f.Total !== null && f.Total !== undefined && !isNaN(Number(f.Total));
+  const d = (u && sat.get(u)) || (f['RFC emisor'] && conTotal ? desdeFila(f) : null);
   if (!d) { sinDatos++; continue; }          // el PDF no se pudo leer y no está en el SAT: se queda para revisión a mano
   reclasificar++;
   out.push({ json: {

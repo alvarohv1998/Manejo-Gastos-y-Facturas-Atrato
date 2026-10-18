@@ -58,6 +58,7 @@ function reglaFija(d, c, h) {
   if (norm(c.buzon).includes(norm(cfg.buzon_descartar))) return ['descartada', 'Llegó a soportefinanzas@: no se registra'];
   if (d.tipo === 'P') return ['complemento', 'Complemento de pago (CFDI tipo P): se registra aparte'];
   if (/cancel/i.test(d.estado_sat || '')) return ['descartada', 'Cancelada en el SAT'];
+  if (d.tipo === 'E') return ['nota_credito', 'Nota de crédito (CFDI tipo E): no se paga ni se avisa en Slack; revisar contra la factura original'];
   const txtEmisor = norm(`${d.emisor_nombre || ''} ${d.emisor_rfc || ''}`).toUpperCase();
   const tarjetaFija = (cfg.siempre_tarjeta || []).find(t => new RegExp(t.patron, 'i').test(txtEmisor));
   if (tarjetaFija) return ['pagada_tarjeta', `${tarjetaFija.motivo}: no se paga, se concilia`];
@@ -69,7 +70,7 @@ function reglaFija(d, c, h) {
   if (h && h.total >= 2 && h.banregio / h.total >= 0.5) return ['pagar_banregio', `Históricamente se paga por Banregio (${h.banregio} de ${h.total} gastos)`];
   return null;
 }
-const ESTADO = { pagar: 'pendiente_pago', pagar_banregio: 'pendiente_pago', pagada_tarjeta: 'por_conciliar', por_validar: 'por_validar', complemento: 'complemento', descartada: 'descartada' };
+const ESTADO = { pagar: 'pendiente_pago', pagar_banregio: 'pendiente_pago', pagada_tarjeta: 'por_conciliar', por_validar: 'por_validar', complemento: 'complemento', descartada: 'descartada', nota_credito: 'nota_credito' };
 const enLista = (v, lista) => (v && lista.includes(v) ? v : null);
 
 // ---------- Gastos ya registrados sin factura (para relacionar) ----------
@@ -341,6 +342,8 @@ for (const c of orden) {
   }
   if (c.accion === 'reclasificar') {
     res.reclasificadas++;
+    if (estado === 'por_validar' && Number(d.total) === 0) { estado = 'descartada'; motivo = `Factura en $0: no hay nada que pagar · ${motivo}`; }
+    else if (estado === 'por_validar' && !/^No se pudo leer el monto/.test(motivo)) motivo = `No se pudo decidir: revisar a mano · ${motivo}`;   // no se vuelve a intentar
     const avisar = estado === 'pendiente_pago' && !enSlack && (!cfg.slack_desde || String(d.fecha || est.hoy).slice(0, 10) >= cfg.slack_desde);
     const datosLeidos = c.requiere_extraccion ? {
       'UUID': d.uuid || '', 'Tipo': d.tipo || '', 'Fecha': d.fecha ? String(d.fecha).slice(0, 10) : '', 'Serie': d.serie || '', 'Folio': d.folio || '',
@@ -400,6 +403,7 @@ for (const f of est.facturas) {
 // ---------- Facturas que una persona ya validó (cambió "Clasificación" en FACTURAS) ----------
 for (const f of est.facturas) {
   if (f.Estado !== 'por_validar' || f['Gasto ID']) continue;
+  if (plan.facturas_actualizar.some(u => u.fila === f.fila)) continue;      // ya se reclasificó en esta corrida
   const clas = String(f['Clasificación'] || '');
   if (clas === 'descartada' || clas === 'no_es_factura') {
     plan.facturas_actualizar.push({ fila: f.fila, cambios: { 'Estado': clas } });
