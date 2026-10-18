@@ -1,0 +1,1163 @@
+<title>Manejo de Gastos Atrato</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500&family=Source+Sans+3:wght@400;600&display=swap">
+<style>
+/* Layout: app shell — barra lateral oscura de marca + área de trabajo; la vista Opex es una hoja de cálculo con pestañas abajo */
+:root {
+  --bg: #F7F6FB;
+  --surface: #FFFFFF;
+  --surface-2: #FBFAFE;
+  --ink: #333333;
+  --ink-2: #475467;
+  --ink-3: #667085;
+  --line: #E6E2F0;
+  --line-strong: #D2C5E2;
+  --accent: #6941C6;
+  --accent-strong: #4D4590;
+  --accent-mid: #6F6CB0;
+  --accent-soft: #F4EBFF;
+  --th-bg: #4D4590;
+  --th-fg: #FFFFFF;
+  --row-alt: #FAF6FF;
+  --sel: #EDE3FF;
+  --side-bg: #161B26;
+  --side-fg: #C9C7D6;
+  --side-fg-strong: #FFFFFF;
+  --side-hover: #222838;
+  --ok-fg: #067647;  --ok-bg: #ECFDF3;
+  --warn-fg: #B54708; --warn-bg: #FFF6E5;
+  --bad-fg: #B42318;  --bad-bg: #FEF3F2;
+  --neu-fg: #4D4590;  --neu-bg: #F1ECF9;
+  --shadow: 0 10px 30px rgba(32, 22, 64, .14);
+  --font-display: "Montserrat", "Century Gothic", "Avenir Next", Arial, sans-serif;
+  --font-body: "Source Sans 3", "Source Sans Pro", Calibri, Arial, sans-serif;
+  --font-mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0E1118; --surface: #161B26; --surface-2: #1A2030;
+    --ink: #ECEAF4; --ink-2: #BDBACB; --ink-3: #8F8CA4;
+    --line: #2A3040; --line-strong: #3A3556;
+    --accent: #A688F0; --accent-strong: #C3B2F5; --accent-mid: #9C99D6; --accent-soft: #2A2342;
+    --th-bg: #2E2A55; --th-fg: #F2EEFF; --row-alt: #191E2B; --sel: #352B57;
+    --side-bg: #0A0C12; --side-fg: #A9A6BA; --side-fg-strong: #FFFFFF; --side-hover: #171B26;
+    --ok-fg: #6CE0A8; --ok-bg: #0F2C21; --warn-fg: #F5B860; --warn-bg: #33240E;
+    --bad-fg: #F69C92; --bad-bg: #3A1714; --neu-fg: #C9B8F7; --neu-bg: #2A2342;
+    --shadow: 0 10px 30px rgba(0,0,0,.5);
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0E1118; --surface: #161B26; --surface-2: #1A2030;
+  --ink: #ECEAF4; --ink-2: #BDBACB; --ink-3: #8F8CA4;
+  --line: #2A3040; --line-strong: #3A3556;
+  --accent: #A688F0; --accent-strong: #C3B2F5; --accent-mid: #9C99D6; --accent-soft: #2A2342;
+  --th-bg: #2E2A55; --th-fg: #F2EEFF; --row-alt: #191E2B; --sel: #352B57;
+  --side-bg: #0A0C12; --side-fg: #A9A6BA; --side-fg-strong: #FFFFFF; --side-hover: #171B26;
+  --ok-fg: #6CE0A8; --ok-bg: #0F2C21; --warn-fg: #F5B860; --warn-bg: #33240E;
+  --bad-fg: #F69C92; --bad-bg: #3A1714; --neu-fg: #C9B8F7; --neu-bg: #2A2342;
+  --shadow: 0 10px 30px rgba(0,0,0,.5);
+  color-scheme: dark;
+}
+
+html, body { height: 100%; }
+body { background: var(--bg); color: var(--ink); font-family: var(--font-body); font-size: 14px; line-height: 1.45; }
+* { box-sizing: border-box; }
+button, input, select, textarea { font: inherit; color: inherit; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
+
+.app { display: grid; grid-template-columns: 236px minmax(0, 1fr); height: 100%; }
+
+/* Barra lateral */
+.side { background: var(--side-bg); color: var(--side-fg); display: flex; flex-direction: column; gap: 24px; padding: 22px 14px; }
+.brand { display: flex; flex-direction: column; gap: 2px; padding: 0 10px; }
+.brand b { font-family: var(--font-display); font-weight: 300; font-size: 22px; color: var(--side-fg-strong); letter-spacing: .01em; }
+.brand span { font-size: 11px; letter-spacing: .14em; text-transform: uppercase; color: var(--side-fg); }
+.nav { display: flex; flex-direction: column; gap: 2px; }
+.nav a { display: flex; align-items: center; gap: 10px; padding: 9px 10px; border-radius: 8px; color: var(--side-fg); text-decoration: none; border-left: 3px solid transparent; }
+.nav a:hover { background: var(--side-hover); color: var(--side-fg-strong); }
+.nav a[aria-current="page"] { background: var(--side-hover); color: var(--side-fg-strong); border-left-color: #8B6CE0; }
+.nav svg { width: 18px; height: 18px; flex: none; }
+.nav .sub { display: flex; flex-wrap: wrap; gap: 6px; padding: 2px 10px 8px 41px; }
+.count { font-size: 11px; padding: 1px 7px; border-radius: 999px; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.count.bad { background: #4A1F22; color: #FFB4AB; }
+.count.warn { background: #45320F; color: #FFCF85; }
+.side-foot { margin-top: auto; font-size: 12px; padding: 0 10px; display: flex; flex-direction: column; gap: 6px; }
+.side-foot .rfc { font-family: var(--font-mono); font-size: 11px; color: var(--side-fg); }
+
+/* Área principal */
+.main { display: flex; flex-direction: column; min-width: 0; min-height: 0; }
+.demo { background: var(--accent-soft); color: var(--accent-strong); font-size: 12px; padding: 6px 24px; border-bottom: 1px solid var(--line); }
+.top { display: flex; align-items: flex-end; justify-content: space-between; gap: 16px; flex-wrap: wrap; padding: 20px 24px 14px; }
+.top h1 { font-family: var(--font-display); font-weight: 300; font-size: 26px; margin: 0; text-wrap: balance; }
+.top p { margin: 2px 0 0; color: var(--ink-3); max-width: 62ch; }
+.who { display: flex; align-items: center; gap: 8px; color: var(--ink-3); font-size: 13px; }
+.who select { min-width: 170px; }
+.screen { flex: 1; min-height: 0; overflow: auto; padding: 0 24px 24px; }
+.screen.fill { display: flex; flex-direction: column; overflow: hidden; padding-bottom: 0; }
+
+/* Controles */
+.btn { display: inline-flex; align-items: center; gap: 6px; border: 1px solid var(--line-strong); background: var(--surface); color: var(--accent-strong); padding: 6px 12px; border-radius: 8px; cursor: pointer; white-space: nowrap; font-weight: 600; font-size: 13px; }
+.btn:hover { border-color: var(--accent); }
+.btn.primary { background: var(--accent); border-color: var(--accent); color: #FFFFFF; }
+:root[data-theme="dark"] .btn.primary { color: #120A26; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .btn.primary { color: #120A26; } }
+.btn.danger { color: var(--bad-fg); border-color: var(--bad-fg); }
+.btn.sm { padding: 3px 9px; font-size: 12px; }
+.btn.link { border: none; background: none; padding: 0; color: var(--accent); font-weight: 600; }
+input[type="text"], input[type="date"], input[type="number"], select, textarea {
+  background: var(--surface); border: 1px solid var(--line-strong); border-radius: 8px; padding: 6px 9px; min-width: 0;
+}
+textarea { resize: vertical; min-height: 64px; width: 100%; }
+label.f { display: flex; flex-direction: column; gap: 4px; font-size: 12px; color: var(--ink-3); letter-spacing: .02em; min-width: 0; }
+label.f input, label.f select { font-size: 14px; color: var(--ink); }
+.toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; padding-bottom: 12px; }
+.toolbar .grow { flex: 1; }
+.toolbar input[type="text"] { width: 220px; }
+.chips { display: flex; flex-wrap: wrap; gap: 4px; }
+.chip-f { border: 1px solid var(--line-strong); background: var(--surface); border-radius: 999px; padding: 2px 10px; font-size: 12px; cursor: pointer; color: var(--ink-2); font-family: var(--font-mono); letter-spacing: .02em; }
+.chip-f[aria-pressed="true"] { background: var(--accent-strong); border-color: var(--accent-strong); color: #FFFFFF; }
+.fx { font-size: 12px; color: var(--ink-3); font-variant-numeric: tabular-nums; }
+
+/* Chips de estado */
+.st { display: inline-flex; align-items: center; gap: 5px; font-size: 12px; font-weight: 600; padding: 2px 8px; border-radius: 999px; white-space: nowrap; }
+.st::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+.st.ok { color: var(--ok-fg); background: var(--ok-bg); }
+.st.warn { color: var(--warn-fg); background: var(--warn-bg); }
+.st.bad { color: var(--bad-fg); background: var(--bad-bg); }
+.st.neu { color: var(--neu-fg); background: var(--neu-bg); }
+
+/* Hoja tipo Excel */
+.sheet { flex: 1; min-height: 0; display: flex; flex-direction: column; border: 1px solid var(--line); border-radius: 10px 10px 0 0; background: var(--surface); overflow: hidden; }
+.grid-wrap { flex: 1; min-height: 0; overflow: auto; }
+table.grid { border-collapse: separate; border-spacing: 0; font-variant-numeric: tabular-nums; font-size: 13px; }
+.grid th { position: sticky; top: 0; z-index: 2; background: var(--th-bg); color: var(--th-fg); font-weight: 600; text-align: left; padding: 7px 10px; white-space: nowrap; font-size: 12px; letter-spacing: .02em; border-right: 1px solid rgba(255,255,255,.12); }
+.grid td { padding: 5px 10px; border-bottom: 1px solid var(--line); border-right: 1px solid var(--line); white-space: nowrap; max-width: 260px; overflow: hidden; text-overflow: ellipsis; background: var(--surface); cursor: cell; }
+.grid tbody tr:nth-child(even) td { background: var(--row-alt); }
+.grid td.num { text-align: right; }
+.grid td.neg { color: var(--ink); }
+.grid td.mono { font-family: var(--font-mono); font-size: 12px; }
+.grid td.sel { background: var(--sel) !important; }
+.grid td.active { box-shadow: inset 0 0 0 2px var(--accent); }
+.grid .stk { position: sticky; z-index: 1; }
+.grid th.stk { z-index: 3; }
+.grid td.id { font-family: var(--font-mono); font-size: 12px; color: var(--accent); cursor: pointer; text-decoration: underline; text-underline-offset: 2px; }
+.grid tfoot td { position: sticky; bottom: 0; background: var(--accent-soft) !important; font-weight: 600; border-top: 2px solid var(--accent-strong); z-index: 1; }
+.grid tfoot td.stk { z-index: 3; }
+.grid td input, .grid td select { width: 100%; padding: 2px 4px; border-radius: 4px; border: 1px solid var(--accent); font-size: 13px; }
+.grid td.empty { color: var(--ink-3); text-align: center; padding: 40px 10px; cursor: default; white-space: normal; max-width: none; }
+.statusbar { display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap; padding: 4px 12px; font-size: 12px; color: var(--ink-3); border-top: 1px solid var(--line); background: var(--surface-2); font-variant-numeric: tabular-nums; }
+.tabs { display: flex; gap: 2px; overflow-x: auto; background: var(--surface-2); border: 1px solid var(--line); border-top: none; padding: 0 8px; }
+.tabs button { border: none; background: none; padding: 8px 14px; cursor: pointer; color: var(--ink-2); border-top: 3px solid transparent; display: inline-flex; align-items: center; gap: 8px; white-space: nowrap; font-weight: 600; font-size: 13px; }
+.tabs button[aria-selected="true"] { background: var(--surface); color: var(--accent-strong); border-top-color: var(--accent); }
+.tabs .count { background: var(--line); color: var(--ink-2); }
+.tabs .count.bad { background: var(--bad-bg); color: var(--bad-fg); }
+.tabs .count.warn { background: var(--warn-bg); color: var(--warn-fg); }
+
+/* Tablas de lista */
+table.list { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; }
+.list th { text-align: left; font-size: 12px; font-weight: 600; color: var(--th-fg); background: var(--th-bg); padding: 8px 12px; white-space: nowrap; position: sticky; top: 0; z-index: 1; }
+.list td { padding: 8px 12px; border-bottom: 1px solid var(--line); vertical-align: middle; }
+.list tbody tr:nth-child(even) td { background: var(--row-alt); }
+.list tbody tr.click { cursor: pointer; }
+.list tbody tr.click:hover td { background: var(--sel); }
+.list td.num { text-align: right; white-space: nowrap; }
+.list .muted { color: var(--ink-3); font-size: 12px; }
+.list .mono { font-family: var(--font-mono); font-size: 12px; }
+.list .acts { display: flex; gap: 6px; justify-content: flex-end; flex-wrap: wrap; }
+.scroll-x { overflow-x: auto; }
+.age { font-variant-numeric: tabular-nums; font-weight: 600; }
+.age.old { color: var(--bad-fg); }
+
+/* Registro */
+.reg { display: grid; grid-template-columns: minmax(0, 1fr) 320px; gap: 20px; align-items: start; }
+.panel { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 18px; display: flex; flex-direction: column; gap: 14px; min-width: 0; }
+.panel h2 { font-family: var(--font-display); font-weight: 400; font-size: 16px; margin: 0; color: var(--accent-strong); }
+.panel h2 small { font-family: var(--font-body); font-size: 12px; color: var(--ink-3); font-weight: 400; margin-left: 6px; }
+.fields { display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 12px; }
+.fields .span2 { grid-column: span 2; }
+.check { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--ink-2); }
+.opts { display: flex; flex-direction: column; gap: 8px; }
+.opt { display: flex; gap: 10px; align-items: flex-start; border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; cursor: pointer; }
+.opt:has(input:checked) { border-color: var(--accent); background: var(--accent-soft); }
+.opt b { display: block; font-weight: 600; }
+.opt span { color: var(--ink-3); font-size: 12px; }
+.linked { display: flex; align-items: center; justify-content: space-between; gap: 8px; border: 1px dashed var(--accent); border-radius: 8px; padding: 8px 10px; font-size: 13px; }
+.formfoot { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; }
+.preview-id { font-family: var(--font-mono); color: var(--accent); }
+.hint { font-size: 12px; color: var(--ink-3); }
+.rule { font-size: 12px; background: var(--accent-soft); color: var(--accent-strong); padding: 8px 10px; border-radius: 8px; }
+
+/* Carpeta */
+.folder { display: grid; grid-template-columns: 220px minmax(0, 1fr); gap: 16px; align-items: start; }
+.tree { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 10px; display: flex; flex-direction: column; gap: 1px; }
+.tree .root { font-size: 11px; letter-spacing: .12em; text-transform: uppercase; color: var(--ink-3); padding: 6px 8px; }
+.tree button { display: flex; justify-content: space-between; align-items: center; gap: 8px; border: none; background: none; text-align: left; padding: 6px 8px; border-radius: 6px; cursor: pointer; color: var(--ink-2); font-family: var(--font-mono); font-size: 12.5px; }
+.tree button.child { padding-left: 24px; font-family: var(--font-body); font-size: 13px; }
+.tree button:hover { background: var(--accent-soft); }
+.tree button[aria-pressed="true"] { background: var(--accent-strong); color: #FFFFFF; }
+.tree button .n { font-family: var(--font-body); font-size: 11px; opacity: .8; }
+.fname { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.fname .ico { flex: none; width: 26px; height: 30px; border-radius: 3px; background: var(--neu-bg); color: var(--neu-fg); font-size: 9px; font-weight: 700; display: grid; place-items: center; letter-spacing: .04em; }
+.fname .ico.xml { background: var(--ok-bg); color: var(--ok-fg); }
+.fname span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 280px; }
+.nodata { color: var(--ink-3); font-style: italic; font-size: 12px; }
+
+/* Panel lateral (detalle) */
+.drawer-bg { position: fixed; inset: 0; background: rgba(14, 10, 30, .35); z-index: 40; }
+.drawer { position: fixed; top: 0; right: 0; bottom: 0; width: min(520px, 100%); background: var(--surface); z-index: 41; box-shadow: var(--shadow); display: flex; flex-direction: column; padding-top: env(safe-area-inset-top, 0px); }
+.drawer header { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; padding: 18px 20px 12px; border-bottom: 1px solid var(--line); }
+.drawer header h3 { margin: 0; font-family: var(--font-display); font-weight: 400; font-size: 18px; overflow-wrap: anywhere; }
+.drawer header p { margin: 2px 0 0; color: var(--ink-3); font-size: 12px; }
+.drawer .body { flex: 1; overflow: auto; padding: 16px 20px 24px; display: flex; flex-direction: column; gap: 18px; }
+.drawer h4 { margin: 0 0 6px; font-size: 11px; letter-spacing: .12em; text-transform: uppercase; color: var(--ink-3); font-weight: 600; }
+.kv { display: grid; grid-template-columns: 130px minmax(0, 1fr); gap: 4px 12px; font-size: 13px; }
+.kv dt { color: var(--ink-3); }
+.kv dd { margin: 0; overflow-wrap: anywhere; font-variant-numeric: tabular-nums; }
+.acts-row { display: flex; flex-wrap: wrap; gap: 8px; }
+.x { border: none; background: none; cursor: pointer; font-size: 22px; line-height: 1; color: var(--ink-3); padding: 2px 6px; }
+.paper { border: 1px solid var(--line); border-radius: 8px; background: var(--surface-2); padding: 16px; display: flex; flex-direction: column; gap: 10px; font-size: 12px; }
+.paper .ph { display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.paper .ph b { font-family: var(--font-display); font-weight: 500; font-size: 14px; }
+.paper .uuid { font-family: var(--font-mono); font-size: 10.5px; color: var(--ink-3); overflow-wrap: anywhere; }
+.paper .line { display: flex; justify-content: space-between; gap: 12px; border-top: 1px solid var(--line); padding-top: 8px; font-variant-numeric: tabular-nums; }
+.paper .tot { font-size: 14px; font-weight: 600; }
+.paper.blank { align-items: center; justify-content: center; min-height: 160px; color: var(--ink-3); text-align: center; }
+.hist { display: flex; flex-direction: column; gap: 8px; }
+.hist li { list-style: none; font-size: 12.5px; border-left: 2px solid var(--line-strong); padding-left: 10px; }
+.hist ul { margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+.hist .when { color: var(--ink-3); font-size: 11.5px; font-variant-numeric: tabular-nums; }
+.diff { font-family: var(--font-mono); font-size: 11.5px; }
+.diff del { color: var(--bad-fg); text-decoration: line-through; }
+.diff ins { color: var(--ok-fg); text-decoration: none; }
+
+/* Modal */
+.modal { position: fixed; z-index: 51; left: 50%; top: 8vh; transform: translateX(-50%); width: min(640px, calc(100% - 32px)); max-height: 84vh; background: var(--surface); border-radius: 14px; box-shadow: var(--shadow); display: flex; flex-direction: column; }
+.modal header { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 16px 20px; border-bottom: 1px solid var(--line); }
+.modal header h3 { margin: 0; font-family: var(--font-display); font-weight: 400; font-size: 17px; }
+.modal .body { overflow: auto; padding: 16px 20px 20px; display: flex; flex-direction: column; gap: 12px; }
+.cand { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 4px 12px; align-items: center; border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; }
+.cand .t { font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.cand .m { color: var(--ink-3); font-size: 12px; font-variant-numeric: tabular-nums; }
+.cand .tags { display: flex; gap: 4px; flex-wrap: wrap; grid-column: 1 / -1; }
+.tag { font-size: 11px; padding: 1px 7px; border-radius: 999px; background: var(--neu-bg); color: var(--neu-fg); }
+.tag.good { background: var(--ok-bg); color: var(--ok-fg); }
+.score { font-family: var(--font-display); font-size: 18px; color: var(--accent-strong); font-variant-numeric: tabular-nums; }
+
+/* Toast */
+.toast { position: fixed; bottom: calc(20px + env(safe-area-inset-bottom, 0px)); left: 50%; transform: translateX(-50%); background: var(--ink); color: var(--bg); padding: 9px 16px; border-radius: 10px; font-size: 13px; z-index: 60; box-shadow: var(--shadow); max-width: calc(100% - 32px); }
+
+.empty-note { padding: 40px 16px; text-align: center; color: var(--ink-3); background: var(--surface); border: 1px dashed var(--line-strong); border-radius: 12px; }
+
+/* Responsive */
+@media (max-width: 900px) {
+  .reg { grid-template-columns: minmax(0, 1fr); }
+  .folder { grid-template-columns: minmax(0, 1fr); }
+  .tree { flex-direction: row; flex-wrap: wrap; }
+  .tree .root { width: 100%; }
+}
+@media (max-width: 760px) {
+  .app { display: flex; flex-direction: column; height: auto; min-height: 100%; }
+  .side { flex-direction: row; align-items: center; gap: 12px; padding: 10px 16px; overflow-x: auto; }
+  .brand b { font-size: 17px; }
+  .brand span, .side-foot, .nav .sub { display: none; }
+  .nav { flex-direction: row; gap: 2px; }
+  .nav a { border-left: none; border-bottom: 3px solid transparent; white-space: nowrap; padding: 7px 9px; }
+  .nav a[aria-current="page"] { border-bottom-color: #8B6CE0; }
+  .demo { padding-inline: 16px; }
+  .top { padding: 16px 16px 12px; }
+  .screen { padding: 0 16px 20px; overflow: visible; }
+  .screen.fill { overflow: visible; }
+  .sheet { min-height: 60vh; }
+  .grid-wrap { max-height: 65vh; }
+  .fields .span2 { grid-column: auto; }
+  .toolbar input[type="text"] { width: 100%; }
+}
+</style>
+
+<div class="app">
+  <aside class="side">
+    <div class="brand"><b>atrato</b><span>Manejo de gastos</span></div>
+    <nav class="nav" id="nav">
+      <a href="#registro" data-go="registro"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M12 5v14M5 12h14"/></svg>Registro de gastos</a>
+      <a href="#opex" data-go="opex"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="3.5" y="4.5" width="17" height="15" rx="1.5"/><path d="M3.5 9.5h17M3.5 14.5h17M9.5 4.5v15"/></svg>Opex</a>
+      <div class="sub" id="navCounts"></div>
+      <a href="#carpeta" data-go="carpeta"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M3.5 7.5a2 2 0 0 1 2-2h4l2 2h7a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2h-13a2 2 0 0 1-2-2z"/></svg>Carpeta de facturas</a>
+      <a href="#bitacora" data-go="bitacora"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M12 7v5l3 2"/><circle cx="12" cy="12" r="8.5"/></svg>Bitácora</a>
+    </nav>
+    <div class="side-foot">
+      <span>Atrato Technologies</span>
+      <span class="rfc">RFC ATE1905076I1</span>
+    </div>
+  </aside>
+
+  <div class="main">
+    <div class="demo">Prototipo de diseño · las cifras, proveedores y facturas son <strong>datos de ejemplo</strong>, no información real de Atrato. Los cambios viven solo en esta pestaña.</div>
+    <div class="top">
+      <div>
+        <h1 id="title"></h1>
+        <p id="subtitle"></p>
+      </div>
+      <label class="who" for="userSel">Usando como
+        <select id="userSel"></select>
+      </label>
+    </div>
+    <section class="screen" id="screen"></section>
+  </div>
+</div>
+
+<div id="overlay"></div>
+
+<script>
+/* ============ Datos de ejemplo ============ */
+const MESES = ['01_ENERO','02_FEBRERO','03_MARZO','04_ABRIL','05_MAYO','06_JUNIO','07_JULIO','08_AGOSTO','09_SEPTIEMBRE','10_OCTUBRE','11_NOVIEMBRE','12_DICIEMBRE'];
+const CARPETAS = ['01_Enero','02_Febrero','03_Marzo','04_Abril','05_Mayo','06_Junio','07_Julio','08_Agosto','09_Septiembre','10_Octubre','11_Noviembre','12_Diciembre'];
+const FX = {1:17.2322,2:17.17,3:18.0667,4:17.403,5:17.3793,6:17.47,7:17.5133,8:16.9712,9:18.071,10:18.05};
+const USUARIOS = ['Luis Caloca','Gilberto Retamoza','Álvaro Hernández','Isabel Torres'];
+const CATEGORIAS = ['Administrative','Bank Fees','Employee Benefits','Marketing','Professional Services','Rent','Salaries','Tax','Technology','Travel'];
+const AREAS = ['Board','Finance','General','Marketing','Operations','Tech'];
+const TIPOS = ['Fixed','One Time','Variable'];
+const METODOS = { 'BBVA':{t:'transferencia',m:'MXN'}, 'Banregio':{t:'transferencia',m:'MXN'}, 'BBVA USD':{t:'transferencia',m:'USD'}, 'STP':{t:'transferencia',m:'MXN'}, 'Clara':{t:'tarjeta',m:'MXN'}, 'Amex':{t:'tarjeta',m:'MXN'} };
+const APROB = {
+  aprob:{l:'Aprobado',c:'ok'}, pend_a:{l:'Pend. aprobación',c:'warn'}, rech:{l:'Rechazado',c:'bad'},
+  pend_r:{l:'Pend. revisión',c:'warn'}, rev:{l:'Revisado',c:'ok'}
+};
+
+// codigo, fecha, categoría, área, descripción, tipo, método, monto, lleva IVA, proveedor, user, receipt, aprobación, eeff, contpaq, notas
+const G0 = [
+ ['26-1078','2026-01-31','Salaries','General','NOMINA','Variable','BBVA',-11458.32,0,'SPEI Recibido nómina','NA','NO FACTURA','aprob','Resultados','6100-001',''],
+ ['26-1102','2026-02-03','Tax','General','PAGO IMPUESTOS ENERO','Variable','BBVA',-486210.00,0,'SAT','NA','NO FACTURA','aprob','Resultados','6400-002',''],
+ ['26-1240','2026-03-12','Professional Services','Finance','HONORARIOS CONTABLES MARZO','Fixed','Banregio',-38280.00,1,'Despacho Ruiz y Asociados','NA','','aprob','Resultados','6300-014',''],
+ ['26-1350','2026-04-10','Technology','Tech','AWS ABRIL','Variable','BBVA USD',-58210.40,0,'Amazon Web Services','NA','','aprob','Resultados','6200-031',''],
+ ['26-1588','2026-05-07','Administrative','Finance','DEVOLUCION CAREY','One Time','BBVA USD',-826618.95,0,'Devolución Carey','NA','NO FACTURA','aprob','Resultados','6300-310',''],
+ ['26-2494','2026-06-30','Professional Services','General','WHITE & CASE LEGAL FEES','One Time','BBVA USD',-26131.98,0,'White & Case','NA','','aprob','Resultados','6300-021',''],
+ ['26-1702','2026-07-15','Marketing','Marketing','DISEÑO CAMPAÑA Q3','One Time','BBVA',-34800.00,1,'Estudio Norte','NA','','aprob','Resultados','6500-004',''],
+ ['26-2810','2026-08-05','Technology','Tech','TELCEL PLAN EMPRESARIAL','Fixed','Banregio',-3228.04,1,'Radiomóvil Dipsa','NA','','aprob','Resultados','6200-012',''],
+ ['26-2815','2026-08-07','Travel','Operations','UBER VIAJES EQUIPO','Variable','Clara',-842.50,1,'Uber','Luis Caloca','','rev','Resultados','6600-002',''],
+ ['26-2830','2026-08-12','Bank Fees','Finance','COMISION SPEI','Variable','BBVA',-58.00,1,'BBVA','NA','NO FACTURA','aprob','Resultados','6700-001',''],
+ ['26-2841','2026-08-15','Salaries','General','NOMINA 1A QUINCENA AGOSTO','Variable','BBVA',-1284500.00,0,'Nómina','NA','NO FACTURA','aprob','Resultados','6100-001',''],
+ ['26-2866','2026-08-20','Technology','Tech','GOOGLE WORKSPACE','Fixed','Amex',-9860.40,1,'Google','Gilberto Retamoza','','rev','Resultados','6200-018',''],
+ ['26-2870','2026-08-21','Marketing','Marketing','CAMPAÑA META ADS','Variable','Amex',-45000.00,0,'Meta Platforms','NA','','pend_r','','',''],
+ ['26-2902','2026-08-28','Rent','General','RENTA OFICINA AGOSTO','Fixed','Banregio',-96280.00,1,'Inmobiliaria Polanco','NA','','aprob','Resultados','6300-001',''],
+ ['26-2955','2026-09-02','Employee Benefits','General','WELLHUB SEPTIEMBRE','Fixed','Banregio',-25278.86,1,'Wellhub','NA','','aprob','Resultados','6100-040',''],
+ ['26-2961','2026-09-05','Technology','Tech','AWS SEPTIEMBRE','Variable','BBVA USD',-61420.11,0,'Amazon Web Services','NA','','aprob','','',''],
+ ['26-2978','2026-09-09','Tax','General','ISR RETENIDO AGOSTO','Variable','BBVA',-212440.00,0,'SAT','NA','NO FACTURA','aprob','Resultados','6400-001',''],
+ ['26-2990','2026-09-12','Administrative','Finance','PAPELERIA Y CONSUMIBLES','Variable','Clara',-1873.20,1,'Office Depot','Isabel Torres','','pend_r','','',''],
+ ['26-3004','2026-09-15','Salaries','General','NOMINA 1A QUINCENA SEPTIEMBRE','Variable','BBVA',-1291830.00,0,'Nómina','NA','NO FACTURA','aprob','Resultados','6100-001',''],
+ ['26-3017','2026-09-18','Professional Services','Finance','AUDITORIA EXTERNA ANTICIPO','One Time','Banregio',-174000.00,1,'Galaz Auditores','NA','','rech','','','Monto no coincide con la propuesta firmada'],
+ ['26-3025','2026-09-22','Marketing','Marketing','PATROCINIO EVENTO FINTECH','One Time','BBVA',-58000.00,1,'Fintech México AC','NA','','pend_a','','',''],
+ ['26-3040','2026-09-26','Travel','Operations','VUELOS CDMX-MTY','Variable','Amex',-12650.00,1,'Aeroméxico','Álvaro Hernández','','rev','','',''],
+ ['26-3051','2026-09-30','Bank Fees','Finance','COMISIONES BANREGIO SEPT','Variable','Banregio',-1340.12,1,'Banregio','NA','NO FACTURA','aprob','Resultados','6700-001',''],
+ ['26-3066','2026-10-01','Rent','General','RENTA OFICINA OCTUBRE','Fixed','Banregio',-96280.00,1,'Inmobiliaria Polanco','NA','','pend_a','','',''],
+ ['26-3072','2026-10-02','Technology','Tech','NOTION PLUS','Fixed','Amex',-4180.00,1,'Notion Labs','NA','','pend_r','','',''],
+ ['26-3081','2026-10-03','Professional Services','Finance','HONORARIOS CONTABLES OCTUBRE','Fixed','Banregio',-38280.00,1,'Despacho Ruiz y Asociados','NA','','pend_a','','',''],
+ ['26-3090','2026-10-06','Employee Benefits','General','SEGURO GMM OCTUBRE','Fixed','BBVA',-142300.55,1,'GNP Seguros','NA','','pend_a','','',''],
+ ['26-3094','2026-10-07','Travel','Operations','UBER OCTUBRE','Variable','Clara',-615.30,1,'Uber','Luis Caloca','','pend_r','','',''],
+ ['26-3101','2026-10-08','Bank Fees','Finance','COMISION SPEI','Variable','BBVA',-58.00,1,'BBVA','NA','NO FACTURA','pend_a','','',''],
+ ['26-3108','2026-10-09','Administrative','General','LIMPIEZA OFICINA SEPTIEMBRE','Fixed','Banregio',-14500.00,1,'Servicios Integrales Brillo','NA','','pend_a','','','']
+];
+
+const round2 = n => Math.round(n * 100) / 100;
+let gastos = G0.map((r, i) => {
+  const [codigo, fecha, categoria, area, descripcion, tipo, metodo, monto, iva, proveedor, usuario, recibo, aprob, eeff, contpaq, notas] = r;
+  const mes = +fecha.slice(5, 7);
+  const ivaAmt = iva ? round2(monto - monto / 1.16) : 0;
+  return {
+    id: i + 1, codigo, fecha, categoria, area, descripcion, tipo, metodo, monto,
+    lleva_iva: !!iva, iva: ivaAmt, iva_ret: 0, isr: 0, total: monto,
+    usd: round2(monto / FX[mes]), usuario, proveedor, folio: 'NA', recibo,
+    prorrateado: false, meses_pr: '', provision: '', eeff, contpaq,
+    periodo_contable: eeff ? capital(MESES[mes - 1].slice(3).toLowerCase()) + ' 26' : '',
+    fluctuacion: '', notas, check: aprob === 'aprob' || aprob === 'rev', aprob,
+    motivo_rechazo: aprob === 'rech' ? notas : '', creado: i
+  };
+});
+function capital(s) { return s.charAt(0).toUpperCase() + s.slice(1); }
+
+// facturas: id, carpeta, archivo, tipo archivo, uuid, tipo CFDI, emisor, rfc, fecha, total, moneda, método, forma, receptor, buzón, datos completos, clasificación, motivo
+const F0 = [
+ [1,'08_Agosto','Telcel $3,228.04','pdf','5e1c0a42-7d0b-4c8e-9b41-0f6b2a9d3c11','I','Radiomóvil Dipsa SA de CV','RDI841003QJ4','2026-08-04',3228.04,'MXN','PUE','03','ATE1905076I1','facturas@atratopago.com',true,'pagar_banregio','Proveedor con historial pagado por Banregio'],
+ [2,'10_Octubre','CADA9C25-B297-43DB-8578-C16CC2CD5DE5.pdf','pdf','cada9c25-b297-43db-8578-c16cc2cd5de5','I','Uber México Technology & Software SA de CV','UMT140725LP3','2026-10-07',615.30,'MXN','PUE','04','ATE1905076I1','facturas@atratopago.com',true,'pagada_tarjeta','Forma de pago 04 (tarjeta de crédito): no se paga, se concilia con el estado de cuenta de Clara'],
+ [3,'08_Agosto','PLO170816D91FF005623 (2).pdf','pdf','',null,'','PLO170816D91','',null,'','','','','',false,'por_clasificar','Solo hay PDF; faltan los datos del CFDI'],
+ [4,'10_Octubre','FACTURA_ 41260 (1).pdf','pdf','8f2d6b10-55aa-4e7f-a0c3-77c1d2e4b9f0','I','Wellhub México S de RL de CV','GME160912K73','2026-10-01',25278.86,'MXN','PPD','99','ATE1905076I1','facturas@atratopago.com',true,'pagar_banregio','Proveedor con historial pagado por Banregio'],
+ [5,'08_Agosto','304AE206-93BC-4FD3-B14A-95C2DAE92331.pdf','pdf','304ae206-93bc-4fd3-b14a-95c2dae92331','I','Google Operaciones de México S de RL de CV','GOM0809114P5','2026-08-19',9860.40,'MXN','PUE','04','ATE1905076I1','facturas@atratopago.com',true,'pagada_tarjeta','Forma de pago 04 (tarjeta de crédito Amex)'],
+ [6,'','Latinometrics Julio 2026','pdf','','extranjero','Latinometrics LLC','','2026-07-31',49.00,'USD','','','ATRATO TECHNOLOGIES','facturas@atratopago.com',true,'por_validar','Proveedor nuevo sin historial: enviar a validación por correo'],
+ [7,'06_Junio','WHITE CASE 38762.pdf','pdf','2ae0640b-1c9e-4a0e-8f55-3a7d9e1b6c20','I','White & Case SC','WCA950101PQ8','2026-06-30',1495.82,'USD','PPD','99','ATE1905076I1','facturas@atratopago.com',true,'pagar','Pago por transferencia BBVA USD'],
+ [8,'09_Septiembre','REP_RUIZ_A1188.xml','xml','b7d40e93-2f61-4c55-9e08-6a1f3c0d8e72','P','Despacho Ruiz y Asociados SC','DRA120514HJ2','2026-09-03',0,'XXX','','','ATE1905076I1','facturas@atratopago.com',true,'complemento','CFDI tipo P: se registra aparte como complemento'],
+ [9,'03_Marzo','RUIZ_A_1188.pdf','pdf','4c09e7d2-8b13-4f6a-b2d0-9e5a1c7f3b48','I','Despacho Ruiz y Asociados SC','DRA120514HJ2','2026-03-10',38280.00,'MXN','PPD','99','ATE1905076I1','facturas@atratopago.com',true,'pagar_banregio','Proveedor con historial pagado por Banregio'],
+ [10,'09_Septiembre','FAC_MOTO_V-8812.pdf','pdf','e4a91c37-0d28-4b6f-8c15-2f7e9a3d6b01','I','Motos del Bajío SA de CV','MBA150611QW3','2026-09-11',58900.00,'MXN','PUE','03','GALJ900101AB3','soportefinanzas@atratopago.com',true,'descartada','Receptor distinto de ATE1905076I1 · venta de moto recibida en soportefinanzas@'],
+ [11,'08_Agosto/Factura uber','UBER_AGO_0807.pdf','pdf','91f3a0c6-7e24-4d8b-a5f1-0c2b6e9d4a73','I','Uber México Technology & Software SA de CV','UMT140725LP3','2026-08-07',842.50,'MXN','PUE','04','ATE1905076I1','facturas@atratopago.com',true,'pagada_tarjeta','Forma de pago 04 (tarjeta de crédito Clara)'],
+ [12,'09_Septiembre','FAC-A-1882.pdf','pdf','0d6e2b94-3a71-4f0c-9d28-b5e1c4a7f690','I','Espacios Colaborativos Reforma SA de CV','ECR180305MN1','2026-09-28',18560.00,'MXN','PUE','03','ATE1905076I1','facturas@atratopago.com',true,'pagar','Pago por transferencia'],
+ [13,'10_Octubre','BRILLO_F_2291.pdf','pdf','6a3f8c21-94e7-4b0d-8f6a-1d2c5e7b9a04','I','Servicios Integrales Brillo SA de CV','SIB110727RT4','2026-10-05',14500.00,'MXN','PUE','03','ATE1905076I1','facturas@atratopago.com',true,'pagar_banregio','Proveedor con historial pagado por Banregio'],
+ [14,'10_Octubre','Notion invoice 2026-10.pdf','pdf','','extranjero','Notion Labs Inc','','2026-10-02',230.00,'USD','','','ATRATO TECHNOLOGIES','facturas@atratopago.com',true,'pagada_tarjeta','Cargo recurrente a tarjeta Amex'],
+ [15,'07_Julio','EN-0457.pdf','pdf','c58b1e07-6d94-4a2f-b3e9-7f0a2d8c1e65','I','Estudio Norte SC','ENO190220LK8','2026-07-14',34800.00,'MXN','PUE','03','ATE1905076I1','facturas@atratopago.com',true,'pagar','Pago por transferencia']
+];
+let facturas = F0.map(r => {
+  const [id, carpeta, archivo, ext, uuid, tipo, emisor, rfc, fecha, total, moneda, metodo, forma, receptor, buzon, datos, clas, motivo] = r;
+  return { id, carpeta, archivo, ext, uuid, tipo, emisor, rfc, fecha, total, moneda, metodo, forma, receptor, buzon, datos, clas, motivo };
+});
+facturas.find(f => f.id === 7).xml = 'WHITE CASE 38762.xml';
+const complementos = [{ complemento: 8, factura: 9, parcialidad: 1, saldo_ant: 38280, pagado: 38280, insoluto: 0 }];
+
+// relaciones gasto ↔ factura
+let rel = [
+  { g: '26-1240', f: 9 }, { g: '26-2494', f: 7 }, { g: '26-2810', f: 1 },
+  { g: '26-2815', f: 11 }, { g: '26-2866', f: 5 }, { g: '26-1702', f: 15 }
+];
+
+let bitacora = [
+  { t:'2026-10-01T08:02', u:'Álvaro Hernández', canal:'migracion', accion:'cargó histórico', ent:'lote', ref:'Budget Opex 2026 · OPEX-CONTA', campo:'', a:'', d:'', c:'Carga inicial de gastos enero–septiembre' },
+  { t:'2026-10-02T11:40', u:'Gilberto Retamoza', canal:'interfaz', accion:'subió factura', ent:'factura', ref:'FACTURA_ 41260 (1).pdf', campo:'', a:'', d:'10_Octubre', c:'' },
+  { t:'2026-10-03T09:15', u:'Luis Caloca', canal:'interfaz', accion:'relacionó', ent:'gasto', ref:'26-2866', campo:'factura', a:'', d:'304AE206-…92331.pdf', c:'' },
+  { t:'2026-10-03T16:22', u:'Isabel Torres', canal:'interfaz', accion:'editó', ent:'gasto', ref:'26-2990', campo:'Expense Category', a:'Technology', d:'Administrative', c:'' },
+  { t:'2026-10-06T10:05', u:'Álvaro Hernández', canal:'interfaz', accion:'rechazó', ent:'gasto', ref:'26-3017', campo:'Estado aprobación', a:'Pend. aprobación', d:'Rechazado', c:'Monto no coincide con la propuesta firmada' },
+  { t:'2026-10-08T12:30', u:'Álvaro Hernández', canal:'interfaz', accion:'marcó sin factura', ent:'gasto', ref:'26-3051', campo:'Receipt', a:'', d:'NO FACTURA', c:'Comisión bancaria' },
+  { t:'2026-10-09T10:12', u:'Luis Caloca', canal:'interfaz', accion:'creó', ent:'gasto', ref:'26-3108', campo:'', a:'', d:'-$14,500.00 · Banregio', c:'' }
+];
+
+/* ============ Estado de la interfaz ============ */
+const S = {
+  user: 'Luis Caloca', screen: 'registro', tab: 'opex', mes: null, metodo: '', q: '',
+  carpeta: 'all', fEstado: '', fq: '', bU: '', bA: '', bE: '', bq: '',
+  active: null, anchor: null, sel: null, editing: null, draft: null
+};
+try { const u = localStorage.getItem('mg_user'); if (u && USUARIOS.includes(u)) S.user = u; } catch (e) {}
+
+/* ============ Utilidades ============ */
+const $ = s => document.querySelector(s);
+const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const money = (n, cur) => {
+  if (n === null || n === undefined || n === '') return '';
+  const s = (n < 0 ? '-' : '') + '$' + Math.abs(n).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  return cur && cur !== 'MXN' ? s + ' ' + cur : s;
+};
+const dmy = iso => iso ? iso.slice(8, 10) + '/' + iso.slice(5, 7) + '/' + iso.slice(2, 4) : '';
+const vintage = iso => MESES[+iso.slice(5, 7) - 1];
+const daysSince = iso => Math.max(0, Math.floor((Date.now() - new Date(iso + 'T12:00').getTime()) / 864e5));
+const nowIso = () => { const d = new Date(); const p = n => String(n).padStart(2, '0'); return `${d.getFullYear()}-${p(d.getMonth()+1)}-${p(d.getDate())}T${p(d.getHours())}:${p(d.getMinutes())}`; };
+const st = (c, l) => `<span class="st ${c}">${esc(l)}</span>`;
+const fById = id => facturas.find(f => f.id === id);
+const gByCode = c => gastos.find(g => g.codigo === c);
+const facturasDe = g => rel.filter(r => r.g === g.codigo).map(r => fById(r.f));
+const gastosDe = f => rel.filter(r => r.f === f.id).map(r => gByCode(r.g));
+const totalMXN = f => f.total == null ? null : (f.moneda === 'USD' ? f.total * (FX[+f.fecha.slice(5, 7)] || 18) : f.total);
+
+function estadoFactura(g) {
+  if (facturasDe(g).length) return { k: 'con', l: 'Con factura', c: 'ok' };
+  if (g.recibo === 'NO FACTURA') return { k: 'no', l: 'Sin factura', c: 'neu' };
+  return { k: 'falta', l: 'Falta factura', c: 'bad' };
+}
+function estadoDoc(f) {
+  if (f.clas === 'descartada') return { k: 'desc', l: 'Descartada', c: 'neu' };
+  if (f.clas === 'no_es_factura') return { k: 'nof', l: 'No es factura', c: 'neu' };
+  if (f.clas === 'complemento') return { k: 'comp', l: 'Complemento', c: 'neu' };
+  if (gastosDe(f).length) return { k: 'rel', l: 'Relacionada', c: 'ok' };
+  if (f.clas === 'pagada_tarjeta') return { k: 'conc', l: 'Pagada · por conciliar', c: 'warn' };
+  return { k: 'pend', l: 'Pendiente de pago', c: 'warn' };
+}
+const faltaList = () => gastos.filter(g => estadoFactura(g).k === 'falta').sort((a, b) => a.fecha.localeCompare(b.fecha));
+const pendList = () => facturas.filter(f => estadoDoc(f).k === 'pend');
+const concList = () => facturas.filter(f => estadoDoc(f).k === 'conc');
+
+function log(e) {
+  bitacora.push(Object.assign({ t: nowIso(), u: S.user, canal: 'interfaz', campo: '', a: '', d: '', c: '' }, e));
+}
+let toastTimer;
+function toast(msg) {
+  let t = $('.toast'); if (!t) { t = document.createElement('div'); t.className = 'toast'; t.setAttribute('role', 'status'); document.body.appendChild(t); }
+  t.textContent = msg; t.hidden = false; clearTimeout(toastTimer); toastTimer = setTimeout(() => { t.hidden = true; }, 2600);
+}
+
+/* ============ Navegación ============ */
+const SCREENS = {
+  registro: ['Registro de gastos', 'Da de alta un gasto y relaciónalo con su factura. Las transferencias se aprueban; las de tarjeta solo se revisan.'],
+  opex: ['Opex', 'Todos los gastos con las columnas de OPEX-CONTA. Doble clic en una celda para editarla; clic en el ID para ver el detalle.'],
+  carpeta: ['Carpeta de facturas', 'Las facturas de la carpeta de Drive, organizadas por mes, con su estado y los gastos que respaldan.'],
+  bitacora: ['Bitácora de cambios', 'Quién cambió qué y cuándo. No se puede editar ni borrar.']
+};
+function go(screen) {
+  S.screen = SCREENS[screen] ? screen : 'registro';
+  S.sel = null; S.active = null; S.editing = null;
+  render();
+}
+function navTo(screen) {
+  go(screen);
+  try { history.replaceState(null, '', '#' + S.screen); } catch (e) {}
+}
+
+function renderNav() {
+  document.querySelectorAll('#nav a').forEach(a => a.setAttribute('aria-current', a.dataset.go === S.screen ? 'page' : 'false'));
+  const f = faltaList().length, p = pendList().length, c = concList().length;
+  $('#navCounts').innerHTML = `<span class="count bad" title="Gastos con falta de factura">${f} sin factura</span><span class="count warn" title="Facturas pendientes de pago">${p} por pagar</span><span class="count warn" title="Facturas de tarjeta por conciliar">${c} por conciliar</span>`;
+}
+
+function render() {
+  renderNav();
+  const [t, s] = SCREENS[S.screen];
+  $('#title').textContent = t; $('#subtitle').textContent = s;
+  const el = $('#screen');
+  el.className = 'screen' + (S.screen === 'opex' ? ' fill' : '');
+  if (S.screen === 'registro') el.innerHTML = viewRegistro();
+  if (S.screen === 'opex') el.innerHTML = viewOpex();
+  if (S.screen === 'carpeta') el.innerHTML = viewCarpeta();
+  if (S.screen === 'bitacora') el.innerHTML = viewBitacora();
+  if (S.screen === 'registro') syncRegistro();
+}
+
+/* ============ A. Registro ============ */
+function nextCodigo() {
+  const max = Math.max(...gastos.map(g => +g.codigo.split('-')[1]));
+  return '26-' + (max + 1);
+}
+function blankDraft() {
+  return { fecha: '2026-10-10', metodo: 'Banregio', proveedor: '', descripcion: '', monto: '', moneda: 'MXN', usuario: 'NA', folio: '',
+    categoria: '', area: '', tipo: '', lleva_iva: true, notas: '', eeff: '', contpaq: '', prorrateado: false, meses_pr: '',
+    fact: 'falta', facturaId: null, motivo: '' };
+}
+function viewRegistro() {
+  const d = S.draft || (S.draft = blankDraft());
+  const opt = (arr, v, empty) => (empty ? `<option value="">${empty}</option>` : '') + arr.map(x => `<option ${x === v ? 'selected' : ''}>${esc(x)}</option>`).join('');
+  const linked = d.facturaId ? fById(d.facturaId) : null;
+  const recientes = [...gastos].sort((a, b) => b.creado - a.creado).slice(0, 8);
+  return `
+  <div class="reg">
+    <form class="panel" id="regForm" autocomplete="off">
+      <div class="formfoot"><h2>Nuevo gasto <small>ID asignado: <span class="preview-id">${nextCodigo()}</span></small></h2></div>
+      <h2>Datos del movimiento</h2>
+      <div class="fields">
+        <label class="f" for="r_fecha">Fecha<input type="date" id="r_fecha" name="fecha" value="${esc(d.fecha)}" required></label>
+        <label class="f">Vintage<input type="text" id="r_vint" value="${vintage(d.fecha)}" readonly></label>
+        <label class="f" for="r_metodo">Método de pago<select id="r_metodo" name="metodo">${opt(Object.keys(METODOS), d.metodo)}</select></label>
+        <label class="f" for="r_monto">Monto (egreso en negativo)<input type="number" step="0.01" id="r_monto" name="monto" value="${esc(d.monto)}" placeholder="-14500.00" required></label>
+        <label class="f span2" for="r_prov">Proveedor<input type="text" id="r_prov" name="proveedor" value="${esc(d.proveedor)}" placeholder="Como aparece en el banco" required></label>
+        <label class="f span2" for="r_desc">Descripción<input type="text" id="r_desc" name="descripcion" value="${esc(d.descripcion)}" placeholder="RENTA OFICINA OCTUBRE" required></label>
+        <label class="f">USD (dólar del mes)<input type="text" id="r_usd" readonly></label>
+        <label class="f" for="r_folio">Folio<input type="text" id="r_folio" name="folio" value="${esc(d.folio)}" placeholder="NA"></label>
+        <label class="f" for="r_user">User<input type="text" id="r_user" name="usuario" value="${esc(d.usuario)}"></label>
+      </div>
+      <div class="rule" id="r_rule"></div>
+
+      <h2>Factura</h2>
+      <div class="opts">
+        <label class="opt" for="r_f1"><input type="radio" name="fact" id="r_f1" value="con" ${d.fact === 'con' ? 'checked' : ''}><div><b>Relacionar factura de la carpeta</b><span>Busca por proveedor, monto y fecha.</span></div></label>
+        ${d.fact === 'con' ? (linked
+          ? `<div class="linked"><span>📄 ${esc(linked.archivo)} · ${money(linked.total, linked.moneda)}</span><button type="button" class="btn sm" data-act="pick-factura">Cambiar</button></div>`
+          : `<button type="button" class="btn" data-act="pick-factura">Buscar factura…</button>`) : ''}
+        <label class="opt" for="r_f2"><input type="radio" name="fact" id="r_f2" value="no" ${d.fact === 'no' ? 'checked' : ''}><div><b>Sin factura (no requiere)</b><span>Nómina, impuestos, comisiones. Se guarda "NO FACTURA" en Receipt y no cuenta como pendiente.</span></div></label>
+        ${d.fact === 'no' ? `<label class="f" for="r_motivo">Motivo<input type="text" id="r_motivo" name="motivo" value="${esc(d.motivo)}" placeholder="Comisión bancaria"></label>` : ''}
+        <label class="opt" for="r_f3"><input type="radio" name="fact" id="r_f3" value="falta" ${d.fact === 'falta' ? 'checked' : ''}><div><b>Todavía no hay factura</b><span>El gasto aparece en la pestaña "Falta factura" hasta que se relacione.</span></div></label>
+      </div>
+
+      <h2>Clasificación contable <small>se puede completar después</small></h2>
+      <div class="fields">
+        <label class="f" for="r_cat">Expense Category<select id="r_cat" name="categoria">${opt(CATEGORIAS, d.categoria, '—')}</select></label>
+        <label class="f" for="r_area">Area<select id="r_area" name="area">${opt(AREAS, d.area, '—')}</select></label>
+        <label class="f" for="r_tipo">Expense Type<select id="r_tipo" name="tipo">${opt(TIPOS, d.tipo, '—')}</select></label>
+        <label class="f" for="r_eeff">EEFF<input type="text" id="r_eeff" name="eeff" value="${esc(d.eeff)}" placeholder="Resultados"></label>
+        <label class="f" for="r_contpaq">Contpaq<input type="text" id="r_contpaq" name="contpaq" value="${esc(d.contpaq)}" placeholder="6300-001"></label>
+        <label class="f" for="r_meses">Meses de prorrateo<input type="number" min="0" id="r_meses" name="meses_pr" value="${esc(d.meses_pr)}" placeholder="0"></label>
+      </div>
+      <div class="fields">
+        <label class="check" for="r_iva"><input type="checkbox" id="r_iva" name="lleva_iva" ${d.lleva_iva ? 'checked' : ''}> Lleva IVA (16%)</label>
+        <label class="check" for="r_pr"><input type="checkbox" id="r_pr" name="prorrateado" ${d.prorrateado ? 'checked' : ''}> Prorrateado</label>
+      </div>
+      <label class="f" for="r_notas">Notas<textarea id="r_notas" name="notas">${esc(d.notas)}</textarea></label>
+      <div class="formfoot">
+        <span class="hint">Se guarda en la bitácora a nombre de <b>${esc(S.user)}</b>.</span>
+        <div class="acts-row"><button type="button" class="btn" data-act="reset-draft">Limpiar</button><button type="submit" class="btn primary">Guardar gasto</button></div>
+      </div>
+    </form>
+
+    <div class="panel">
+      <h2>Registrados recientemente</h2>
+      <table class="list">
+        <tbody>
+        ${recientes.map(g => { const ef = estadoFactura(g), ap = APROB[g.aprob]; return `
+          <tr class="click" data-open-gasto="${g.codigo}">
+            <td><div class="mono">${g.codigo}</div><div class="muted">${esc(g.descripcion)}</div>
+              <div style="display:flex;gap:4px;flex-wrap:wrap;margin-top:4px">${st(ef.c, ef.l)}${st(ap.c, ap.l)}</div></td>
+            <td class="num">${money(g.total)}<div class="muted">${esc(g.metodo)}</div></td>
+          </tr>`; }).join('')}
+        </tbody>
+      </table>
+      <span class="hint">Clic en un gasto para aprobar, revisar o ver su historial.</span>
+    </div>
+  </div>`;
+}
+function readDraft() {
+  const fm = $('#regForm'); if (!fm) return;
+  const d = S.draft, v = id => $(id)?.value;
+  d.fecha = v('#r_fecha'); d.metodo = v('#r_metodo'); d.monto = v('#r_monto'); d.proveedor = v('#r_prov'); d.descripcion = v('#r_desc');
+  d.folio = v('#r_folio'); d.usuario = v('#r_user'); d.categoria = v('#r_cat'); d.area = v('#r_area'); d.tipo = v('#r_tipo');
+  d.eeff = v('#r_eeff'); d.contpaq = v('#r_contpaq'); d.meses_pr = v('#r_meses'); d.notas = v('#r_notas');
+  d.lleva_iva = $('#r_iva').checked; d.prorrateado = $('#r_pr').checked;
+  if ($('#r_motivo')) d.motivo = $('#r_motivo').value;
+  d.fact = fm.querySelector('input[name="fact"]:checked')?.value || 'falta';
+}
+function syncRegistro() {
+  const d = S.draft; if (!$('#regForm')) return;
+  const mes = +d.fecha.slice(5, 7), m = parseFloat(d.monto);
+  $('#r_vint').value = vintage(d.fecha);
+  $('#r_usd').value = isNaN(m) ? '' : money(m / (FX[mes] || 18)) + ' USD';
+  const t = METODOS[d.metodo]?.t;
+  $('#r_rule').innerHTML = t === 'tarjeta'
+    ? `<b>${esc(d.metodo)}</b> es tarjeta de crédito: el gasto queda <b>Pend. revisión</b> (no se aprueba, no se paga; solo se registra).`
+    : `<b>${esc(d.metodo)}</b> es transferencia: el gasto queda <b>Pend. aprobación</b>. Aprobar es solo registro; no ejecuta el pago.`;
+}
+function saveDraft() {
+  readDraft();
+  const d = S.draft, monto = parseFloat(d.monto);
+  if (!d.fecha || isNaN(monto) || !d.proveedor.trim() || !d.descripcion.trim()) { toast('Faltan fecha, monto, proveedor o descripción.'); return; }
+  if (d.fact === 'con' && !d.facturaId) { toast('Elige la factura a relacionar o cambia la opción de factura.'); return; }
+  const mes = +d.fecha.slice(5, 7), codigo = nextCodigo();
+  const g = {
+    id: gastos.length + 1, codigo, fecha: d.fecha, categoria: d.categoria, area: d.area, descripcion: d.descripcion.toUpperCase(), tipo: d.tipo,
+    metodo: d.metodo, monto, lleva_iva: d.lleva_iva, iva: d.lleva_iva ? round2(monto - monto / 1.16) : 0, iva_ret: 0, isr: 0, total: monto,
+    usd: round2(monto / (FX[mes] || 18)), usuario: d.usuario || 'NA', proveedor: d.proveedor, folio: d.folio || 'NA',
+    recibo: d.fact === 'no' ? 'NO FACTURA' : '', prorrateado: d.prorrateado, meses_pr: d.meses_pr, provision: '', eeff: d.eeff, contpaq: d.contpaq,
+    periodo_contable: '', fluctuacion: '', notas: d.fact === 'no' && d.motivo ? (d.notas ? d.notas + ' · ' : '') + d.motivo : d.notas, check: false,
+    aprob: METODOS[d.metodo].t === 'tarjeta' ? 'pend_r' : 'pend_a', motivo_rechazo: '', creado: Math.max(...gastos.map(x => x.creado)) + 1
+  };
+  gastos.push(g);
+  log({ accion: 'creó', ent: 'gasto', ref: codigo, d: `${money(monto)} · ${d.metodo}` });
+  if (d.fact === 'con') { rel.push({ g: codigo, f: d.facturaId }); log({ accion: 'relacionó', ent: 'gasto', ref: codigo, campo: 'factura', d: fById(d.facturaId).archivo }); }
+  if (d.fact === 'no') log({ accion: 'marcó sin factura', ent: 'gasto', ref: codigo, campo: 'Receipt', d: 'NO FACTURA', c: d.motivo });
+  S.draft = blankDraft();
+  render();
+  toast(`Gasto ${codigo} guardado.`);
+}
+
+/* ============ B. Opex ============ */
+const COLS = [
+  { k:'codigo', l:'ID', w:84, ro:true },
+  { k:'vintage', l:'VINTAGE', w:120, ro:true, get: g => vintage(g.fecha), mono:true },
+  { k:'fecha', l:'DATE', w:84, type:'date' },
+  { k:'categoria', l:'Expense Category', w:160, opts: CATEGORIAS },
+  { k:'area', l:'Area', w:100, opts: AREAS },
+  { k:'descripcion', l:'Description', w:240 },
+  { k:'tipo', l:'Expense Type', w:110, opts: TIPOS },
+  { k:'metodo', l:'Payment Method', w:120, opts: Object.keys(METODOS) },
+  { k:'monto', l:'Amount', w:120, type:'money' },
+  { k:'lleva_iva', l:'VAT ?', w:64, type:'bool' },
+  { k:'iva', l:'VAT', w:104, type:'money' },
+  { k:'iva_ret', l:'VAT Withheld', w:104, type:'money' },
+  { k:'isr', l:'ISR', w:90, type:'money' },
+  { k:'total', l:'Total', w:120, type:'money' },
+  { k:'usd', l:'USD', w:110, type:'money' },
+  { k:'usuario', l:'User', w:120 },
+  { k:'proveedor', l:'Provider', w:180 },
+  { k:'folio', l:'Folio', w:80 },
+  { k:'invoice', l:'Invoice', w:200, ro:true, get: g => facturasDe(g).map(f => f.archivo).join(', ') },
+  { k:'recibo', l:'Receipt', w:110 },
+  { k:'prorrateado', l:'Prorated', w:76, type:'bool' },
+  { k:'meses_pr', l:'Prorated months', w:110 },
+  { k:'provision', l:'Provision', w:90 },
+  { k:'eeff', l:'EEFF', w:100 },
+  { k:'contpaq', l:'Contpaq', w:90, mono:true },
+  { k:'periodo_contable', l:'Periodo', w:90 },
+  { k:'fluctuacion', l:'Fluctuación', w:100, type:'money' },
+  { k:'notas', l:'Notes', w:220 },
+  { k:'check', l:'CHECK', w:70, type:'bool' }
+];
+const LEAD = [{ k:'_ef', l:'Estado factura', w:118 }, { k:'_ap', l:'Estado aprobación', w:140 }];
+
+function opexRows() {
+  const q = S.q.trim().toLowerCase();
+  return gastos.filter(g => (!S.mes || +g.fecha.slice(5, 7) === S.mes) && (!S.metodo || g.metodo === S.metodo) &&
+    (!q || [g.codigo, g.descripcion, g.proveedor, g.categoria, g.area, g.notas].join(' ').toLowerCase().includes(q)))
+    .sort((a, b) => a.fecha.localeCompare(b.fecha) || a.codigo.localeCompare(b.codigo));
+}
+function viewOpex() {
+  const f = faltaList().length, p = pendList().length, c = concList().length;
+  const tabs = `
+    <div class="tabs" role="tablist">
+      <button role="tab" aria-selected="${S.tab === 'opex'}" data-tab="opex">OPEX <span class="count">${gastos.length}</span></button>
+      <button role="tab" aria-selected="${S.tab === 'falta'}" data-tab="falta">Falta factura <span class="count bad">${f}</span></button>
+      <button role="tab" aria-selected="${S.tab === 'pend'}" data-tab="pend">Pendientes de pago <span class="count warn">${p}</span></button>
+      <button role="tab" aria-selected="${S.tab === 'conc'}" data-tab="conc">Por conciliar (tarjeta) <span class="count warn">${c}</span></button>
+    </div>`;
+  let body = '';
+  if (S.tab === 'opex') body = opexGrid();
+  if (S.tab === 'falta') body = faltaTable();
+  if (S.tab === 'pend') body = pendTable();
+  if (S.tab === 'conc') body = concTable();
+  return body + tabs;
+}
+function opexGrid() {
+  const rows = opexRows();
+  const mesesConDatos = [...new Set(gastos.map(g => +g.fecha.slice(5, 7)))].sort((a, b) => a - b);
+  const all = LEAD.concat(COLS);
+  let left = 0; const stickyLeft = {};
+  all.slice(0, 3).forEach(c => { stickyLeft[c.k] = left; left += c.w; });
+  const thStyle = c => `style="min-width:${c.w}px;max-width:${c.w}px${stickyLeft[c.k] !== undefined ? `;left:${stickyLeft[c.k]}px` : ''}"`;
+  const cls = c => stickyLeft[c.k] !== undefined ? 'stk' : '';
+  const sum = k => rows.reduce((s, g) => s + (+g[k] || 0), 0);
+  const mesFx = S.mes || 10;
+  return `
+  <div class="toolbar">
+    <div class="chips" role="group" aria-label="Filtrar por mes">
+      <button class="chip-f" aria-pressed="${!S.mes}" data-mes="">TODOS</button>
+      ${mesesConDatos.map(m => `<button class="chip-f" aria-pressed="${S.mes === m}" data-mes="${m}">${MESES[m - 1]}</button>`).join('')}
+    </div>
+    <span class="grow"></span>
+    <select id="o_met" aria-label="Filtrar por método de pago"><option value="">Todos los métodos</option>${Object.keys(METODOS).map(m => `<option ${S.metodo === m ? 'selected' : ''}>${m}</option>`).join('')}</select>
+    <input type="text" id="o_q" placeholder="Buscar ID, proveedor, descripción…" value="${esc(S.q)}" aria-label="Buscar">
+    <span class="fx">Dólar ${MESES[mesFx - 1]}: $${FX[mesFx].toFixed(4)}</span>
+  </div>
+  <div class="sheet">
+    <div class="grid-wrap" id="gridWrap">
+      <table class="grid" id="grid">
+        <thead><tr>${all.map(c => `<th class="${cls(c)}" ${thStyle(c)}>${esc(c.l)}</th>`).join('')}</tr></thead>
+        <tbody>
+        ${rows.length ? rows.map((g, ri) => `<tr>${all.map((c, ci) => cell(g, c, ri, ci, stickyLeft)).join('')}</tr>`).join('')
+          : `<tr><td class="empty" colspan="${all.length}">No hay gastos con estos filtros. Quita el filtro de mes o de método para ver más.</td></tr>`}
+        </tbody>
+        <tfoot><tr>${all.map(c => {
+          const st2 = stickyLeft[c.k] !== undefined ? `style="left:${stickyLeft[c.k]}px"` : '';
+          let v = '';
+          if (c.k === '_ef') v = `${rows.length} gastos`;
+          if (['monto','iva','total','usd'].includes(c.k)) v = money(sum(c.k));
+          return `<td class="${cls(c)} ${c.type === 'money' ? 'num' : ''}" ${st2}>${v}</td>`;
+        }).join('')}</tr></tfoot>
+      </table>
+    </div>
+    <div class="statusbar"><span id="selInfo">Selecciona celdas (clic y Mayús+clic) para ver la suma.</span><span>Doble clic o Enter para editar · cada cambio queda en la bitácora</span></div>
+  </div>`;
+}
+function cellText(g, c) {
+  const v = c.get ? c.get(g) : g[c.k];
+  if (c.type === 'money') return money(v === '' ? '' : v);
+  if (c.type === 'bool') return v ? 'TRUE' : 'FALSE';
+  if (c.type === 'date') return dmy(v);
+  return v ?? '';
+}
+function cell(g, c, ri, ci, stickyLeft) {
+  const stl = stickyLeft[c.k] !== undefined ? `left:${stickyLeft[c.k]}px;` : '';
+  const base = `data-r="${ri}" data-c="${ci}" data-code="${g.codigo}" style="${stl}min-width:${c.w}px;max-width:${c.w}px"`;
+  const sk = stickyLeft[c.k] !== undefined ? ' stk' : '';
+  if (c.k === '_ef') { const e = estadoFactura(g); return `<td class="${sk}" ${base}>${st(e.c, e.l)}</td>`; }
+  if (c.k === '_ap') { const a = APROB[g.aprob]; return `<td class="${sk}" ${base} data-k="aprob">${st(a.c, a.l)}</td>`; }
+  if (c.k === 'codigo') return `<td class="id${sk}" ${base} data-open-gasto="${g.codigo}" title="Ver detalle">${g.codigo}</td>`;
+  const v = c.get ? c.get(g) : g[c.k];
+  const k = [c.type === 'money' ? 'num' : '', c.mono ? 'mono' : '', sk.trim()].filter(Boolean);
+  return `<td class="${k.join(' ')}" ${base} data-k="${c.k}" title="${esc(cellText(g, c))}">${esc(cellText(g, c))}</td>`;
+}
+function selectCells(r1, c1, r2, c2) {
+  S.sel = { r1: Math.min(r1, r2), r2: Math.max(r1, r2), c1: Math.min(c1, c2), c2: Math.max(c1, c2) };
+  let n = 0, s = 0, nums = 0;
+  document.querySelectorAll('#grid tbody td[data-r]').forEach(td => {
+    const r = +td.dataset.r, c = +td.dataset.c;
+    const inSel = r >= S.sel.r1 && r <= S.sel.r2 && c >= S.sel.c1 && c <= S.sel.c2;
+    td.classList.toggle('sel', inSel && !(r1 === r2 && c1 === c2));
+    td.classList.toggle('active', r === r1 && c === c1 && S.anchor && S.anchor.r === r && S.anchor.c === c);
+    if (inSel) {
+      n++;
+      const col = LEAD.concat(COLS)[c];
+      if (col && col.type === 'money') { const g = gByCode(td.dataset.code); const v = +(col.get ? col.get(g) : g[col.k]); if (!isNaN(v)) { s += v; nums++; } }
+    }
+  });
+  $('#selInfo').textContent = nums ? `Suma: ${money(s)} · Promedio: ${money(s / nums)} · Recuento: ${n}` : `Recuento: ${n}`;
+}
+function editCell(td) {
+  const ci = +td.dataset.c, col = LEAD.concat(COLS)[ci], g = gByCode(td.dataset.code);
+  if (!col || col.ro || col.k === '_ef') { if (col && col.k === 'invoice') openGasto(g.codigo); return; }
+  if (col.k === '_ap') {
+    // Las transferencias se aprueban o rechazan desde el detalle, porque rechazar pide un motivo
+    if (METODOS[g.metodo].t !== 'tarjeta') { openGasto(g.codigo); return; }
+    const opts = ['pend_r', 'rev'];
+    td.innerHTML = `<select aria-label="Estado de aprobación">${opts.map(o => `<option value="${o}" ${g.aprob === o ? 'selected' : ''}>${APROB[o].l}</option>`).join('')}</select>`;
+  } else if (col.type === 'bool') {
+    setField(g, col, !g[col.k]); return;
+  } else if (col.opts) {
+    td.innerHTML = `<select aria-label="${esc(col.l)}"><option value=""></option>${col.opts.map(o => `<option ${g[col.k] === o ? 'selected' : ''}>${esc(o)}</option>`).join('')}</select>`;
+  } else {
+    const type = col.type === 'date' ? 'date' : col.type === 'money' ? 'number' : 'text';
+    td.innerHTML = `<input type="${type}" ${type === 'number' ? 'step="0.01"' : ''} aria-label="${esc(col.l)}" value="${esc(g[col.k])}">`;
+  }
+  S.editing = { code: g.codigo, ci };
+  const inp = td.querySelector('input,select'); inp.focus(); if (inp.select) inp.select();
+  const commit = () => {
+    if (!S.editing) return; S.editing = null;
+    let v = inp.value;
+    if (col.k === '_ap') { if (v !== g.aprob) setAprob(g, v); else render(); return; }
+    if (col.type === 'money') v = v === '' ? '' : round2(parseFloat(v));
+    if (String(v) !== String(g[col.k] ?? '')) setField(g, col, v); else render();
+  };
+  inp.addEventListener('blur', commit);
+  inp.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); inp.blur(); } if (e.key === 'Escape') { S.editing = null; render(); } });
+  if (inp.tagName === 'SELECT') inp.addEventListener('change', () => inp.blur());
+}
+function setField(g, col, v) {
+  const before = cellText(g, col);
+  g[col.k] = v;
+  if (col.k === 'monto') { g.total = v; g.usd = round2(v / (FX[+g.fecha.slice(5, 7)] || 18)); g.iva = g.lleva_iva ? round2(v - v / 1.16) : 0; }
+  if (col.k === 'lleva_iva') g.iva = v ? round2(g.monto - g.monto / 1.16) : 0;
+  if (col.k === 'metodo') { const t = METODOS[v].t; if (t === 'tarjeta' && ['pend_a','aprob','rech'].includes(g.aprob)) g.aprob = 'pend_r'; if (t !== 'tarjeta' && ['pend_r','rev'].includes(g.aprob)) g.aprob = 'pend_a'; }
+  const after = cellText(g, col);
+  const accion = col.k === 'recibo' && v === 'NO FACTURA' ? 'marcó sin factura' : 'editó';
+  log({ accion, ent: 'gasto', ref: g.codigo, campo: col.l, a: before, d: after });
+  render();
+  toast(`${g.codigo}: ${col.l} actualizado.`);
+}
+function setAprob(g, v, motivo) {
+  const before = APROB[g.aprob].l; g.aprob = v;
+  if (v === 'rech') { g.motivo_rechazo = motivo || ''; g.notas = motivo || g.notas; }
+  const acc = { aprob: 'aprobó', rech: 'rechazó', rev: 'revisó', pend_a: 'editó', pend_r: 'editó' }[v];
+  log({ accion: acc, ent: 'gasto', ref: g.codigo, campo: 'Estado aprobación', a: before, d: APROB[v].l, c: motivo || '' });
+  render(); if ($('.drawer')) openGasto(g.codigo);
+  toast(`${g.codigo}: ${APROB[v].l}.`);
+}
+
+function faltaTable() {
+  const rows = faltaList();
+  if (!rows.length) return `<div class="empty-note">No hay gastos con falta de factura. Todo está relacionado o marcado como "Sin factura".</div>`;
+  return `<div class="sheet"><div class="grid-wrap"><table class="list">
+    <thead><tr><th>ID</th><th>Fecha</th><th>Días sin factura</th><th>Proveedor</th><th>Descripción</th><th>Método</th><th>Aprobación</th><th style="text-align:right">Total</th><th style="text-align:right">Acciones</th></tr></thead>
+    <tbody>${rows.map(g => { const d = daysSince(g.fecha), a = APROB[g.aprob]; return `<tr>
+      <td class="mono"><button class="btn link" data-open-gasto="${g.codigo}">${g.codigo}</button></td>
+      <td>${dmy(g.fecha)}<div class="muted">${vintage(g.fecha)}</div></td>
+      <td><span class="age ${d > 30 ? 'old' : ''}">${d} días</span></td>
+      <td>${esc(g.proveedor)}</td><td>${esc(g.descripcion)}</td><td>${esc(g.metodo)}</td><td>${st(a.c, a.l)}</td>
+      <td class="num">${money(g.total)}</td>
+      <td><div class="acts"><button class="btn sm primary" data-act="relate-gasto" data-code="${g.codigo}">Relacionar factura</button><button class="btn sm" data-act="no-factura" data-code="${g.codigo}">Sin factura</button></div></td>
+    </tr>`; }).join('')}</tbody></table></div>
+    <div class="statusbar"><span>${rows.length} gastos · ${money(rows.reduce((s, g) => s + g.total, 0))}</span><span>Ordenado del más antiguo al más reciente · no incluye gastos marcados "NO FACTURA"</span></div></div>`;
+}
+function pendTable() {
+  const rows = pendList();
+  if (!rows.length) return `<div class="empty-note">No hay facturas pendientes de pago.</div>`;
+  return `<div class="sheet"><div class="grid-wrap"><table class="list">
+    <thead><tr><th>Archivo</th><th>Fecha factura</th><th>Emisor</th><th>Método</th><th>Días pendiente</th><th>Banco sugerido</th><th>Clasificación</th><th style="text-align:right">Total</th><th style="text-align:right">Acciones</th></tr></thead>
+    <tbody>${rows.map(f => { const d = f.fecha ? daysSince(f.fecha) : null; const banco = f.clas === 'pagar_banregio' ? 'Banregio' : f.moneda === 'USD' ? 'BBVA USD' : f.datos ? 'BBVA' : '—';
+      const cl = { pagar:'Pagar', pagar_banregio:'Pagar · Banregio', por_validar:'Por validar', por_clasificar:'Por clasificar' }[f.clas] || f.clas; return `<tr>
+      <td><button class="btn link" data-open-factura="${f.id}">${esc(f.archivo)}</button><div class="muted">${esc(f.carpeta || 'Sin carpeta de mes')}</div></td>
+      <td>${f.fecha ? dmy(f.fecha) : '<span class="nodata">sin datos</span>'}</td>
+      <td>${f.emisor ? esc(f.emisor) : '<span class="nodata">sin datos</span>'}<div class="muted mono">${esc(f.rfc)}</div></td>
+      <td>${esc(f.metodo || '—')}</td>
+      <td>${d === null ? '—' : `<span class="age ${d > 30 ? 'old' : ''}">${d} días</span>`}</td>
+      <td>${banco}</td><td>${st(f.clas === 'por_validar' || f.clas === 'por_clasificar' ? 'neu' : 'warn', cl)}</td>
+      <td class="num">${f.total == null ? '<span class="nodata">sin datos</span>' : money(f.total, f.moneda)}</td>
+      <td><div class="acts"><button class="btn sm primary" data-act="registrar-desde" data-id="${f.id}">Registrar gasto</button><button class="btn sm" data-act="relate-factura" data-id="${f.id}">Relacionar</button></div></td>
+    </tr>`; }).join('')}</tbody></table></div>
+    <div class="statusbar"><span>${rows.length} facturas sin gasto registrado</span><span>No incluye complementos, descartadas ni facturas de tarjeta</span></div></div>`;
+}
+function concTable() {
+  const rows = concList();
+  if (!rows.length) return `<div class="empty-note">Todas las facturas de tarjeta están conciliadas con su cargo.</div>`;
+  return `<div class="sheet"><div class="grid-wrap"><table class="list">
+    <thead><tr><th>Archivo</th><th>Fecha factura</th><th>Emisor</th><th>Tarjeta</th><th>Días sin conciliar</th><th style="text-align:right">Total</th><th style="text-align:right">Acciones</th></tr></thead>
+    <tbody>${rows.map(f => { const d = daysSince(f.fecha); const tarjeta = /clara/i.test(f.motivo) ? 'Clara' : /amex/i.test(f.motivo) ? 'Amex' : 'Tarjeta'; return `<tr>
+      <td><button class="btn link" data-open-factura="${f.id}">${esc(f.archivo)}</button><div class="muted">${esc(f.carpeta)}</div></td>
+      <td>${dmy(f.fecha)}</td><td>${esc(f.emisor)}</td><td>${tarjeta}</td>
+      <td><span class="age ${d > 30 ? 'old' : ''}">${d} días</span></td>
+      <td class="num">${money(f.total, f.moneda)}${f.moneda === 'USD' ? `<div class="muted">≈ ${money(totalMXN(f))} MXN</div>` : ''}</td>
+      <td><div class="acts"><button class="btn sm primary" data-act="relate-factura" data-id="${f.id}">Conciliar con cargo</button><button class="btn sm" data-act="registrar-desde" data-id="${f.id}">Registrar cargo</button></div></td>
+    </tr>`; }).join('')}</tbody></table></div>
+    <div class="statusbar"><span>${rows.length} facturas de tarjeta ya pagadas</span><span>Se concilian contra el estado de cuenta; después lo hará la conexión a bancos</span></div></div>`;
+}
+
+/* ============ Detalle de gasto ============ */
+function histFor(ent, ref) {
+  const h = bitacora.filter(b => b.ent === ent && b.ref === ref).slice().reverse();
+  if (!h.length) return `<p class="hint">Sin cambios registrados desde la carga del histórico.</p>`;
+  return `<div class="hist"><ul>${h.map(b => `<li><div class="when">${fmtT(b.t)} · ${esc(b.u)}</div><div><b>${esc(b.accion)}</b>${b.campo ? ` ${esc(b.campo)}` : ''}</div>${diffHtml(b)}${b.c ? `<div class="muted">${esc(b.c)}</div>` : ''}</li>`).join('')}</ul></div>`;
+}
+const fmtT = t => `${t.slice(8, 10)}/${t.slice(5, 7)}/${t.slice(2, 4)} ${t.slice(11, 16)}`;
+const diffHtml = b => (b.a || b.d) ? `<div class="diff">${b.a ? `<del>${esc(b.a)}</del> → ` : ''}<ins>${esc(b.d)}</ins></div>` : '';
+
+function openGasto(code) {
+  const g = gByCode(code); if (!g) return;
+  const ef = estadoFactura(g), ap = APROB[g.aprob], fs = facturasDe(g), tarjeta = METODOS[g.metodo].t === 'tarjeta';
+  let acts = '';
+  if (!tarjeta && g.aprob === 'pend_a') acts += `<button class="btn primary" data-act="aprobar" data-code="${code}">Aprobar</button><button class="btn danger" data-act="rechazar" data-code="${code}">Rechazar</button>`;
+  if (!tarjeta && g.aprob === 'rech') acts += `<button class="btn" data-act="reabrir" data-code="${code}">Volver a pendiente</button>`;
+  if (tarjeta && g.aprob === 'pend_r') acts += `<button class="btn primary" data-act="revisar" data-code="${code}">Marcar revisado</button>`;
+  if (ef.k === 'falta') acts += `<button class="btn" data-act="relate-gasto" data-code="${code}">Relacionar factura</button><button class="btn" data-act="no-factura" data-code="${code}">Sin factura (no requiere)</button>`;
+  drawer(`${code} · ${g.descripcion}`, `${dmy(g.fecha)} · ${vintage(g.fecha)} · ${g.metodo}`, `
+    <div class="acts-row">${st(ef.c, ef.l)}${st(ap.c, ap.l)}</div>
+    ${g.aprob === 'rech' && g.motivo_rechazo ? `<div class="rule">Motivo del rechazo: ${esc(g.motivo_rechazo)}</div>` : ''}
+    ${acts ? `<div class="acts-row">${acts}</div>` : ''}
+    <section><h4>Movimiento</h4><dl class="kv">
+      <dt>Proveedor</dt><dd>${esc(g.proveedor)}</dd><dt>Monto</dt><dd>${money(g.monto)}</dd><dt>IVA</dt><dd>${money(g.iva)}</dd>
+      <dt>Total</dt><dd><b>${money(g.total)}</b></dd><dt>USD</dt><dd>${money(g.usd)}</dd><dt>Folio</dt><dd>${esc(g.folio)}</dd><dt>Receipt</dt><dd>${esc(g.recibo || '—')}</dd>
+    </dl></section>
+    <section><h4>Clasificación</h4><dl class="kv">
+      <dt>Category</dt><dd>${esc(g.categoria || '—')}</dd><dt>Area</dt><dd>${esc(g.area || '—')}</dd><dt>Type</dt><dd>${esc(g.tipo || '—')}</dd>
+      <dt>EEFF</dt><dd>${esc(g.eeff || '—')}</dd><dt>Contpaq</dt><dd class="mono">${esc(g.contpaq || '—')}</dd><dt>Notas</dt><dd>${esc(g.notas || '—')}</dd>
+    </dl></section>
+    <section><h4>Facturas relacionadas</h4>${fs.length ? fs.map(f => `<div class="linked"><span>📄 ${esc(f.archivo)} · ${money(f.total, f.moneda)}</span><span class="acts-row"><button class="btn sm" data-open-factura="${f.id}">Ver</button><button class="btn sm danger" data-act="unlink" data-code="${code}" data-id="${f.id}">Quitar</button></span></div>`).join('') : `<p class="hint">${ef.k === 'no' ? 'Marcado como gasto que no requiere factura.' : 'Ninguna todavía.'}</p>`}</section>
+    <section><h4>Historial</h4>${histFor('gasto', code)}</section>`);
+}
+
+/* ============ C. Carpeta ============ */
+function folderTree() {
+  const counts = {}; facturas.forEach(f => { const k = f.carpeta || '_root'; counts[k] = (counts[k] || 0) + 1; });
+  const top = CARPETAS.filter(c => Object.keys(counts).some(k => k === c || k.startsWith(c + '/')));
+  let h = `<div class="root">Facturas 2026 · Drive</div><button aria-pressed="${S.carpeta === 'all'}" data-folder="all">Todas <span class="n">${facturas.length}</span></button>`;
+  top.forEach(c => {
+    const n = facturas.filter(f => f.carpeta === c || (f.carpeta || '').startsWith(c + '/')).length;
+    h += `<button aria-pressed="${S.carpeta === c}" data-folder="${c}">${c} <span class="n">${n}</span></button>`;
+    Object.keys(counts).filter(k => k.startsWith(c + '/')).forEach(k => {
+      h += `<button class="child" aria-pressed="${S.carpeta === k}" data-folder="${esc(k)}">${esc(k.split('/')[1])} <span class="n">${counts[k]}</span></button>`;
+    });
+  });
+  if (counts._root) h += `<button aria-pressed="${S.carpeta === '_root'}" data-folder="_root">Sin carpeta de mes <span class="n">${counts._root}</span></button>`;
+  return h;
+}
+function viewCarpeta() {
+  const q = S.fq.trim().toLowerCase();
+  const rows = facturas.filter(f => {
+    if (S.carpeta === '_root' && f.carpeta) return false;
+    if (S.carpeta !== 'all' && S.carpeta !== '_root' && !(f.carpeta === S.carpeta || (f.carpeta || '').startsWith(S.carpeta + '/') && !S.carpeta.includes('/'))) return false;
+    if (S.fEstado && estadoDoc(f).k !== S.fEstado) return false;
+    return !q || [f.archivo, f.emisor, f.rfc, f.uuid].join(' ').toLowerCase().includes(q);
+  }).sort((a, b) => (b.fecha || '').localeCompare(a.fecha || ''));
+  const estados = [['', 'Todos los estados'], ['rel', 'Relacionada'], ['pend', 'Pendiente de pago'], ['conc', 'Pagada · por conciliar'], ['comp', 'Complemento'], ['desc', 'Descartada'], ['nof', 'No es factura']];
+  return `
+  <div class="folder">
+    <nav class="tree" aria-label="Carpetas">${folderTree()}</nav>
+    <div style="min-width:0">
+      <div class="toolbar">
+        <select id="c_est" aria-label="Filtrar por estado">${estados.map(([v, l]) => `<option value="${v}" ${S.fEstado === v ? 'selected' : ''}>${l}</option>`).join('')}</select>
+        <input type="text" id="c_q" placeholder="Archivo, emisor, RFC o UUID" value="${esc(S.fq)}" aria-label="Buscar factura">
+        <span class="grow"></span>
+        <button class="btn primary" data-act="upload">Subir factura</button>
+      </div>
+      ${rows.length ? `<div class="scroll-x" style="border:1px solid var(--line);border-radius:10px;background:var(--surface)"><table class="list">
+        <thead><tr><th>Archivo</th><th>Emisor</th><th>Fecha</th><th>Tipo</th><th>Método</th><th>Estado</th><th style="text-align:right">Total</th></tr></thead>
+        <tbody>${rows.map(f => { const e = estadoDoc(f); return `<tr class="click" data-open-factura="${f.id}">
+          <td><div class="fname"><span class="ico ${f.ext}">${f.ext.toUpperCase()}</span><span title="${esc(f.archivo)}">${esc(f.archivo)}</span></div><div class="muted">${esc(f.carpeta || 'Sin carpeta de mes')}</div></td>
+          <td>${f.emisor ? esc(f.emisor) : '<span class="nodata">sin datos</span>'}<div class="muted mono">${esc(f.rfc || '')}</div></td>
+          <td>${f.fecha ? dmy(f.fecha) : '<span class="nodata">sin datos</span>'}</td>
+          <td>${tipoLabel(f.tipo)}</td><td>${esc(f.metodo || '—')}</td><td>${st(e.c, e.l)}</td>
+          <td class="num">${f.total == null ? '<span class="nodata">sin datos</span>' : f.tipo === 'P' ? '—' : money(f.total, f.moneda)}</td>
+        </tr>`; }).join('')}</tbody></table></div>`
+      : `<div class="empty-note">No hay facturas en esta carpeta con ese filtro.</div>`}
+    </div>
+  </div>`;
+}
+const tipoLabel = t => ({ I: 'Ingreso', E: 'Egreso', P: 'Pago', extranjero: 'Invoice', null: '—' }[t] || '—');
+
+function openFactura(id) {
+  const f = fById(id); if (!f) return;
+  const e = estadoDoc(f), gs = gastosDe(f);
+  const comp = complementos.filter(c => c.complemento === f.id || c.factura === f.id);
+  const paper = f.datos ? `
+    <div class="paper">
+      <div class="ph"><div><b>${esc(f.emisor)}</b><div class="mono">${esc(f.rfc || 'Sin RFC (extranjero)')}</div></div><div style="text-align:right">${tipoLabel(f.tipo)}<div>${dmy(f.fecha)}</div></div></div>
+      ${f.uuid ? `<div class="uuid">UUID ${esc(f.uuid.toUpperCase())}</div>` : ''}
+      <div>Receptor: <span class="mono">${esc(f.receptor)}</span></div>
+      ${f.tipo === 'P' ? `<div class="line"><span>Pago de factura ${esc(fById(9).archivo)} · parcialidad 1</span><span>${money(38280)}</span></div>`
+        : `<div class="line"><span>Subtotal</span><span>${money(f.moneda === 'USD' || f.tipo === 'extranjero' ? f.total : f.total / 1.16, f.moneda)}</span></div>
+           <div class="line"><span>IVA trasladado</span><span>${f.tipo === 'extranjero' || f.moneda === 'USD' ? '—' : money(f.total - f.total / 1.16)}</span></div>
+           <div class="line tot"><span>Total</span><span>${money(f.total, f.moneda)}</span></div>`}
+      <div class="muted">Vista previa de ejemplo del PDF</div>
+    </div>` : `<div class="paper blank"><div><b>${esc(f.archivo)}</b><br>Solo está el PDF. Proveedor, monto y fecha aparecen como "sin datos" hasta que se capturen o los lea la automatización.</div></div>`;
+  let acts = '';
+  if (e.k === 'pend') acts += `<button class="btn primary" data-act="registrar-desde" data-id="${id}">Registrar gasto</button><button class="btn" data-act="relate-factura" data-id="${id}">Relacionar con gasto</button>`;
+  if (e.k === 'conc') acts += `<button class="btn primary" data-act="relate-factura" data-id="${id}">Conciliar con cargo</button>`;
+  if (['pend', 'conc'].includes(e.k)) acts += `<button class="btn" data-act="no-es-factura" data-id="${id}">No es factura</button>`;
+  drawer(f.archivo, `${f.carpeta || 'Sin carpeta de mes'} · Drive`, `
+    <div class="acts-row">${st(e.c, e.l)}</div>
+    ${f.motivo ? `<div class="rule">${esc(f.motivo)}</div>` : ''}
+    ${acts ? `<div class="acts-row">${acts}</div>` : ''}
+    ${paper}
+    <section><h4>Datos del CFDI</h4><dl class="kv">
+      <dt>Tipo</dt><dd>${tipoLabel(f.tipo)}</dd><dt>Método / forma</dt><dd>${esc(f.metodo || '—')} · ${esc(f.forma || '—')}</dd>
+      <dt>Buzón</dt><dd>${esc(f.buzon || '—')}</dd><dt>Archivos</dt><dd>${esc(f.archivo)}${f.xml ? `<br>${esc(f.xml)}` : ''}</dd>
+    </dl></section>
+    ${comp.length ? `<section><h4>Complemento de pago</h4>${comp.map(c => `<div class="linked"><span>${c.complemento === f.id ? `Paga ${esc(fById(c.factura).archivo)}` : `Pagada por ${esc(fById(c.complemento).archivo)}`} · parcialidad ${c.parcialidad} · saldo ${money(c.insoluto)}</span><button class="btn sm" data-open-factura="${c.complemento === f.id ? c.factura : c.complemento}">Ver</button></div>`).join('')}</section>` : ''}
+    <section><h4>Gastos relacionados</h4>${gs.length ? gs.map(g => `<div class="linked"><span><span class="mono">${g.codigo}</span> · ${dmy(g.fecha)} · ${money(g.total)}</span><button class="btn sm" data-open-gasto="${g.codigo}">Ver</button></div>`).join('') : '<p class="hint">Ninguno.</p>'}</section>
+    <section><h4>Historial</h4>${histFor('factura', f.archivo)}</section>`);
+}
+
+/* ============ D. Bitácora ============ */
+function viewBitacora() {
+  const acciones = [...new Set(bitacora.map(b => b.accion))].sort();
+  const q = S.bq.trim().toLowerCase();
+  const rows = bitacora.filter(b => (!S.bU || b.u === S.bU) && (!S.bA || b.accion === S.bA) && (!S.bE || b.ent === S.bE) &&
+    (!q || [b.ref, b.campo, b.a, b.d, b.c].join(' ').toLowerCase().includes(q))).slice().reverse();
+  return `
+  <div class="toolbar">
+    <select id="b_u" aria-label="Usuario"><option value="">Todos los usuarios</option>${USUARIOS.map(u => `<option ${S.bU === u ? 'selected' : ''}>${u}</option>`).join('')}</select>
+    <select id="b_a" aria-label="Acción"><option value="">Todas las acciones</option>${acciones.map(a => `<option ${S.bA === a ? 'selected' : ''}>${esc(a)}</option>`).join('')}</select>
+    <select id="b_e" aria-label="Objeto"><option value="">Gastos y facturas</option><option value="gasto" ${S.bE === 'gasto' ? 'selected' : ''}>Solo gastos</option><option value="factura" ${S.bE === 'factura' ? 'selected' : ''}>Solo facturas</option></select>
+    <input type="text" id="b_q" placeholder="ID de gasto, archivo, valor…" value="${esc(S.bq)}" aria-label="Buscar en bitácora">
+  </div>
+  ${rows.length ? `<div class="scroll-x" style="border:1px solid var(--line);border-radius:10px;background:var(--surface)"><table class="list">
+    <thead><tr><th>Fecha y hora</th><th>Usuario</th><th>Acción</th><th>Objeto</th><th>Campo</th><th>Antes → después</th><th>Comentario</th></tr></thead>
+    <tbody>${rows.map(b => `<tr>
+      <td class="mono">${fmtT(b.t)}</td><td>${esc(b.u)}${b.canal !== 'interfaz' ? `<div class="muted">${esc(b.canal)}</div>` : ''}</td><td><b>${esc(b.accion)}</b></td>
+      <td>${b.ent === 'gasto' ? `<button class="btn link" data-open-gasto="${esc(b.ref)}">${esc(b.ref)}</button>` : b.ent === 'factura' ? `<button class="btn link" data-open-factura="${facturas.find(f => f.archivo === b.ref)?.id || ''}">${esc(b.ref)}</button>` : esc(b.ref)}</td>
+      <td>${esc(b.campo || '—')}</td><td>${diffHtml(b) || '—'}</td><td class="muted">${esc(b.c || '')}</td>
+    </tr>`).join('')}</tbody></table></div>` : `<div class="empty-note">No hay cambios con esos filtros.</div>`}
+  <p class="hint">${bitacora.length} cambios registrados. La bitácora solo se agrega; no tiene botones de editar ni borrar.</p>`;
+}
+
+/* ============ Panel y modal ============ */
+function drawer(title, sub, html) {
+  $('#overlay').innerHTML = `<div class="drawer-bg" data-act="close"></div>
+    <aside class="drawer" role="dialog" aria-modal="true" aria-label="${esc(title)}">
+      <header><div><h3>${esc(title)}</h3><p>${esc(sub)}</p></div><button class="x" data-act="close" aria-label="Cerrar">×</button></header>
+      <div class="body">${html}</div></aside>`;
+  $('.drawer .x').focus();
+}
+function modal(title, html) {
+  $('#overlay').insertAdjacentHTML('beforeend', `<div class="drawer-bg" data-act="close-modal" style="z-index:50"></div>
+    <div class="modal" role="dialog" aria-modal="true" aria-label="${esc(title)}"><header><h3>${esc(title)}</h3><button class="x" data-act="close-modal" aria-label="Cerrar">×</button></header><div class="body">${html}</div></div>`);
+}
+function closeModal() { document.querySelectorAll('.modal, .drawer-bg[data-act="close-modal"]').forEach(n => n.remove()); }
+function closeAll() { $('#overlay').innerHTML = ''; }
+
+function scoreMatch(g, f) {
+  const tags = []; let s = 0;
+  const gt = Math.abs(g.total), ft = totalMXN(f);
+  if (ft != null && gt) {
+    const diff = Math.abs(gt - ft) / gt;
+    if (diff < 0.005) { s += 50; tags.push(['Monto exacto', 1]); } else if (diff < 0.03) { s += 35; tags.push(['Monto ±3%', 1]); } else if (diff < 0.15) { s += 15; tags.push(['Monto cercano', 0]); }
+  }
+  const w = (g.proveedor || '').toLowerCase().split(/\s+/)[0];
+  if (w && w.length > 2 && (f.emisor || '').toLowerCase().includes(w)) { s += 35; tags.push(['Mismo proveedor', 1]); }
+  if (f.fecha) { const dd = Math.abs((new Date(g.fecha) - new Date(f.fecha)) / 864e5); if (dd <= 5) { s += 15; tags.push([`±${Math.round(dd)} días`, 1]); } else if (dd <= 35) { s += 5; tags.push([`${Math.round(dd)} días de diferencia`, 0]); } }
+  if (!f.datos) tags.push(['Sin datos: revisar el PDF', 0]);
+  return { s: Math.min(100, s), tags };
+}
+const tagsHtml = t => t.map(([l, good]) => `<span class="tag ${good ? 'good' : ''}">${esc(l)}</span>`).join('');
+
+function pickFacturaFor(g, onPick) {
+  const cands = facturas.filter(f => ['pend', 'conc'].includes(estadoDoc(f).k))
+    .map(f => ({ f, ...scoreMatch(g, f) })).sort((a, b) => b.s - a.s);
+  modal(`Relacionar factura · ${g.codigo || 'nuevo gasto'}`, `
+    <p class="hint">Facturas sin gasto, ordenadas por parecido con ${esc(g.proveedor || 'el gasto')} · ${money(g.total)} · ${dmy(g.fecha)}.</p>
+    ${cands.length ? cands.map(c => `<div class="cand">
+      <div style="min-width:0"><div class="t">${esc(c.f.archivo)}</div><div class="m">${c.f.emisor ? esc(c.f.emisor) : 'sin datos'} · ${c.f.fecha ? dmy(c.f.fecha) : 'sin fecha'} · ${c.f.total == null ? 'sin monto' : money(c.f.total, c.f.moneda)}</div></div>
+      <div style="display:flex;gap:10px;align-items:center"><span class="score" title="Parecido">${c.s}%</span><button class="btn sm primary" data-pick="${c.f.id}">Relacionar</button></div>
+      <div class="tags">${tagsHtml(c.tags)}</div></div>`).join('') : '<div class="empty-note">No hay facturas sin relacionar.</div>'}`);
+  document.querySelectorAll('[data-pick]').forEach(b => b.addEventListener('click', () => { onPick(+b.dataset.pick); }));
+}
+function pickGastoFor(f, onPick) {
+  const card = f.clas === 'pagada_tarjeta';
+  const cands = gastos.filter(g => estadoFactura(g).k === 'falta' && (!card || METODOS[g.metodo].t === 'tarjeta'))
+    .map(g => ({ g, ...scoreMatch(g, f) })).sort((a, b) => b.s - a.s).slice(0, 8);
+  modal(card ? `Conciliar con cargo de tarjeta` : `Relacionar con gasto`, `
+    <p class="hint">${card ? 'Cargos de Clara y Amex sin factura' : 'Gastos con falta de factura'}, ordenados por parecido con ${esc(f.emisor || f.archivo)}${f.total != null ? ' · ' + money(f.total, f.moneda) : ''}.</p>
+    ${cands.length ? cands.map(c => `<div class="cand">
+      <div style="min-width:0"><div class="t"><span class="mono">${c.g.codigo}</span> · ${esc(c.g.descripcion)}</div><div class="m">${esc(c.g.proveedor)} · ${dmy(c.g.fecha)} · ${esc(c.g.metodo)} · ${money(c.g.total)}</div></div>
+      <div style="display:flex;gap:10px;align-items:center"><span class="score">${c.s}%</span><button class="btn sm primary" data-pick="${esc(c.g.codigo)}">${card ? 'Conciliar' : 'Relacionar'}</button></div>
+      <div class="tags">${tagsHtml(c.tags)}</div></div>`).join('') : `<div class="empty-note">No hay ${card ? 'cargos de tarjeta' : 'gastos'} sin factura. Usa "Registrar ${card ? 'cargo' : 'gasto'}".</div>`}`);
+  document.querySelectorAll('[data-pick]').forEach(b => b.addEventListener('click', () => onPick(b.dataset.pick)));
+}
+function link(code, fid, conciliar) {
+  rel.push({ g: code, f: fid });
+  const f = fById(fid);
+  log({ accion: conciliar ? 'concilió' : 'relacionó', ent: 'gasto', ref: code, campo: 'factura', d: f.archivo });
+  log({ accion: conciliar ? 'concilió' : 'relacionó', ent: 'factura', ref: f.archivo, campo: 'gasto', d: code });
+  closeAll(); render(); toast(`${code} ${conciliar ? 'conciliado' : 'relacionado'} con ${f.archivo}.`);
+}
+
+/* ============ Eventos ============ */
+document.addEventListener('click', e => {
+  const t = e.target.closest('[data-go],[data-tab],[data-mes],[data-folder],[data-open-gasto],[data-open-factura],[data-act]');
+  if (!t) return;
+  if (t.dataset.go) { e.preventDefault(); navTo(t.dataset.go); return; }
+  if (t.dataset.tab) { S.tab = t.dataset.tab; S.sel = null; render(); return; }
+  if (t.dataset.mes !== undefined) { S.mes = t.dataset.mes ? +t.dataset.mes : null; render(); return; }
+  if (t.dataset.folder) { S.carpeta = t.dataset.folder; render(); return; }
+  if (t.dataset.openGasto) { e.stopPropagation(); closeModal(); openGasto(t.dataset.openGasto); return; }
+  if (t.dataset.openFactura) { e.stopPropagation(); closeModal(); openFactura(+t.dataset.openFactura); return; }
+  const a = t.dataset.act, code = t.dataset.code, id = +t.dataset.id;
+  if (a === 'close') closeAll();
+  if (a === 'close-modal') closeModal();
+  if (a === 'aprobar') setAprob(gByCode(code), 'aprob');
+  if (a === 'revisar') setAprob(gByCode(code), 'rev');
+  if (a === 'reabrir') setAprob(gByCode(code), 'pend_a');
+  if (a === 'rechazar') {
+    modal(`Rechazar ${code}`, `<label class="f" for="m_motivo">Motivo del rechazo (queda en la bitácora)<textarea id="m_motivo" placeholder="Monto no coincide con la cotización"></textarea></label>
+      <div class="acts-row" style="justify-content:flex-end"><button class="btn" data-act="close-modal">Cancelar</button><button class="btn danger" id="m_ok">Rechazar gasto</button></div>`);
+    $('#m_motivo').focus();
+    $('#m_ok').addEventListener('click', () => { const m = $('#m_motivo').value.trim(); if (!m) { toast('Escribe el motivo del rechazo.'); return; } closeModal(); setAprob(gByCode(code), 'rech', m); });
+  }
+  if (a === 'no-factura') {
+    const g = gByCode(code);
+    modal(`${code} no requiere factura`, `<p class="hint">Se guarda "NO FACTURA" en Receipt y el gasto sale de la pestaña "Falta factura".</p>
+      <label class="f" for="m_nf">Motivo<input type="text" id="m_nf" placeholder="Nómina, impuesto, comisión bancaria…"></label>
+      <div class="acts-row" style="justify-content:flex-end"><button class="btn" data-act="close-modal">Cancelar</button><button class="btn primary" id="m_ok">Marcar sin factura</button></div>`);
+    $('#m_nf').focus();
+    $('#m_ok').addEventListener('click', () => { const m = $('#m_nf').value.trim(); g.recibo = 'NO FACTURA'; log({ accion: 'marcó sin factura', ent: 'gasto', ref: code, campo: 'Receipt', a: '', d: 'NO FACTURA', c: m }); closeAll(); render(); toast(`${code} marcado sin factura.`); });
+  }
+  if (a === 'relate-gasto') { const g = gByCode(code); pickFacturaFor(g, fid => link(code, fid, fById(fid).clas === 'pagada_tarjeta')); }
+  if (a === 'relate-factura') { const f = fById(id); pickGastoFor(f, c => link(c, id, f.clas === 'pagada_tarjeta')); }
+  if (a === 'unlink') { const f = fById(id); rel = rel.filter(r => !(r.g === code && r.f === id)); log({ accion: 'desrelacionó', ent: 'gasto', ref: code, campo: 'factura', a: f.archivo, d: '' }); render(); openGasto(code); toast('Relación eliminada.'); }
+  if (a === 'no-es-factura') { const f = fById(id); const before = estadoDoc(f).l; f.clas = 'no_es_factura'; log({ accion: 'editó', ent: 'factura', ref: f.archivo, campo: 'Estado', a: before, d: 'No es factura' }); render(); openFactura(id); toast('Marcado como "No es factura".'); }
+  if (a === 'registrar-desde') {
+    const f = fById(id); closeAll();
+    const d = blankDraft();
+    d.fecha = f.fecha || d.fecha; d.proveedor = f.emisor || ''; d.descripcion = (f.emisor || f.archivo).toUpperCase().slice(0, 40);
+    d.monto = f.total != null ? (-round2(totalMXN(f))).toFixed(2) : ''; d.metodo = f.clas === 'pagada_tarjeta' ? (/amex/i.test(f.motivo) ? 'Amex' : 'Clara') : f.clas === 'pagar_banregio' ? 'Banregio' : f.moneda === 'USD' ? 'BBVA USD' : 'BBVA';
+    d.fact = 'con'; d.facturaId = f.id; d.lleva_iva = f.tipo === 'I';
+    S.draft = d; navTo('registro');
+    toast('Formulario llenado con los datos de la factura.');
+  }
+  if (a === 'pick-factura') {
+    readDraft(); const d = S.draft;
+    pickFacturaFor({ codigo: '', proveedor: d.proveedor, total: parseFloat(d.monto) || 0, fecha: d.fecha }, fid => { S.draft.facturaId = fid; closeModal(); render(); });
+  }
+  if (a === 'reset-draft') { S.draft = blankDraft(); render(); }
+  if (a === 'upload') {
+    const opts = CARPETAS.slice(0, 10).map(c => `<option ${c === '10_Octubre' ? 'selected' : ''}>${c}</option>`).join('');
+    modal('Subir factura', `<p class="hint">Mientras no exista la descarga automática del correo y del SAT, la factura se sube a mano a su carpeta del mes.</p>
+      <label class="f" for="m_folder">Carpeta<select id="m_folder">${opts}</select></label>
+      <label class="f" for="m_file">Archivo PDF o XML<input type="file" id="m_file" accept=".pdf,.xml"></label>
+      <div class="acts-row" style="justify-content:flex-end"><button class="btn" data-act="close-modal">Cancelar</button><button class="btn primary" id="m_ok">Subir</button></div>`);
+    $('#m_ok').addEventListener('click', () => {
+      const file = $('#m_file').files[0]; if (!file) { toast('Elige un archivo PDF o XML.'); return; }
+      const folder = $('#m_folder').value, nid = Math.max(...facturas.map(f => f.id)) + 1;
+      if (facturas.some(f => f.archivo === file.name)) { toast(`Ya existe ${file.name} en la carpeta. No se duplicó.`); return; }
+      facturas.push({ id: nid, carpeta: folder, archivo: file.name, ext: /\.xml$/i.test(file.name) ? 'xml' : 'pdf', uuid: '', tipo: null, emisor: '', rfc: '', fecha: '', total: null, moneda: '', metodo: '', forma: '', receptor: '', buzon: '', datos: false, clas: 'por_clasificar', motivo: 'Subida a mano; faltan los datos del CFDI' });
+      log({ accion: 'subió factura', ent: 'factura', ref: file.name, d: folder });
+      closeAll(); S.carpeta = folder; render(); toast(`${file.name} subida a ${folder}.`);
+    });
+  }
+});
+document.addEventListener('dblclick', e => { const td = e.target.closest('#grid td[data-c]'); if (td) editCell(td); });
+document.addEventListener('mousedown', e => {
+  const td = e.target.closest('#grid td[data-c]'); if (!td || S.editing || e.target.closest('input,select')) return;
+  const r = +td.dataset.r, c = +td.dataset.c;
+  if (e.shiftKey && S.anchor) { e.preventDefault(); selectCells(S.anchor.r, S.anchor.c, r, c); }
+  else { S.anchor = { r, c }; selectCells(r, c, r, c); }
+});
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') { if ($('.modal')) closeModal(); else if ($('.drawer')) closeAll(); }
+  if (e.key === 'Enter' && S.screen === 'opex' && S.anchor && !S.editing && !$('.drawer') && document.activeElement === document.body) {
+    const td = document.querySelector(`#grid td[data-r="${S.anchor.r}"][data-c="${S.anchor.c}"]`); if (td) { e.preventDefault(); editCell(td); }
+  }
+});
+document.addEventListener('input', e => {
+  const id = e.target.id;
+  if (id === 'o_q') { S.q = e.target.value; rerenderKeep(id); }
+  if (id === 'c_q') { S.fq = e.target.value; rerenderKeep(id); }
+  if (id === 'b_q') { S.bq = e.target.value; rerenderKeep(id); }
+  if (e.target.closest('#regForm')) { readDraft(); syncRegistro(); }
+});
+document.addEventListener('change', e => {
+  const id = e.target.id;
+  if (id === 'o_met') { S.metodo = e.target.value; render(); }
+  if (id === 'c_est') { S.fEstado = e.target.value; render(); }
+  if (id === 'b_u') { S.bU = e.target.value; render(); }
+  if (id === 'b_a') { S.bA = e.target.value; render(); }
+  if (id === 'b_e') { S.bE = e.target.value; render(); }
+  if (e.target.name === 'fact') { readDraft(); render(); }
+  if (id === 'userSel') { S.user = e.target.value; try { localStorage.setItem('mg_user', S.user); } catch (err) {} render(); toast(`Ahora los cambios se firman como ${S.user}.`); }
+});
+document.addEventListener('submit', e => { if (e.target.id === 'regForm') { e.preventDefault(); saveDraft(); } });
+function rerenderKeep(id) {
+  const el = document.getElementById(id), pos = el.selectionStart;
+  render(); const n = document.getElementById(id); if (n) { n.focus(); n.setSelectionRange(pos, pos); }
+}
+
+/* ============ Inicio ============ */
+$('#userSel').innerHTML = USUARIOS.map(u => `<option ${u === S.user ? 'selected' : ''}>${u}</option>`).join('');
+go(location.hash.slice(1) || 'registro');
+</script>

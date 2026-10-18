@@ -1,0 +1,117 @@
+{
+  "name": "Gastos Atrato · aviso de errores",
+  "nodes": [
+    {
+      "name": "Si falla el flujo de gastos",
+      "type": "n8n-nodes-base.errorTrigger",
+      "typeVersion": 1,
+      "parameters": {},
+      "id": "351fbf39-ab2b-46d1-ae5a-65d464cde5c3",
+      "position": [
+        240,
+        300
+      ]
+    },
+    {
+      "name": "Mensaje de error",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "parameters": {
+        "jsCode": "// Flujo de errores: avisa por correo (y en Slack, cuando el bot esté aprobado) en qué paso falló la corrida de gastos.\nconst CANAL = 'C03KJNZRX5J';   // #budget-y-presupuestos\nconst e = $json.execution || {};\nconst err = e.error || {};\nconst texto = [\n  ':rotating_light: *El flujo de gastos falló*',\n  `*Paso:* ${e.lastNodeExecuted || 'desconocido'}`,\n  `*Error:* ${String(err.message || 'sin mensaje').slice(0, 500)}`,\n  e.url ? `<${e.url}|Ver la ejecución en n8n>` : '',\n  'Lo que no se procesó se recoge en la siguiente corrida.'\n].filter(Boolean).join('\\n');\nconst esc = t => String(t ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');\nconst html = `<div style=\"font-family:Arial,sans-serif;font-size:14px;color:#333\">\n<p><b>El flujo de gastos falló.</b></p>\n<p><b>Paso:</b> ${esc(e.lastNodeExecuted || 'desconocido')}<br><b>Error:</b> ${esc(String(err.message || 'sin mensaje').slice(0, 500))}</p>\n${e.url ? `<p><a href=\"${esc(e.url)}\">Ver la ejecución en n8n</a></p>` : ''}\n<p style=\"color:#667085\">Lo que no se procesó se recoge en la siguiente corrida.</p></div>`;\nreturn [{ json: { cuerpo: { channel: CANAL, text: texto }, para: 'alvaro@atratopago.com', asunto: `Falló el flujo de gastos · ${e.lastNodeExecuted || ''}`.trim(), html } }];\n"
+      },
+      "id": "6f16aed7-4a50-4946-b8fa-5d37d63aa057",
+      "position": [
+        480,
+        300
+      ]
+    },
+    {
+      "name": "Gmail: avisar error",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "RTiNi3hQ5peoDnaW",
+          "name": "Cuenta Alvaro"
+        }
+      },
+      "parameters": {
+        "sendTo": "={{ $json.para }}",
+        "subject": "={{ $json.asunto }}",
+        "emailType": "html",
+        "message": "={{ $json.html }}",
+        "options": {
+          "appendAttribution": false
+        }
+      },
+      "id": "74010b25-a5a0-4086-9e91-7d667d68d915",
+      "position": [
+        720,
+        200
+      ]
+    },
+    {
+      "name": "Slack: avisar error",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "parameters": {
+        "method": "POST",
+        "url": "https://slack.com/api/chat.postMessage",
+        "options": {
+          "timeout": 60000
+        },
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "slackApi",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json.cuerpo) }}"
+      },
+      "credentials": {
+        "slackApi": {
+          "id": "kNMBayZDExoYuYM0",
+          "name": "Authorization"
+        }
+      },
+      "id": "3c364b57-d607-4d19-b6d4-9b01f829026a",
+      "position": [
+        720,
+        400
+      ]
+    }
+  ],
+  "connections": {
+    "Si falla el flujo de gastos": {
+      "main": [
+        [
+          {
+            "node": "Mensaje de error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Mensaje de error": {
+      "main": [
+        [
+          {
+            "node": "Gmail: avisar error",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Slack: avisar error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "timezone": "America/Mexico_City"
+  },
+  "pinData": {},
+  "active": false
+}
