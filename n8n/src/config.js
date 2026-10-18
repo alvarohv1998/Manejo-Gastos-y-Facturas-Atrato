@@ -54,7 +54,8 @@ const config = {
   // Proveedores que siempre se pagan con tarjeta: quedan "tarjeta por conciliar" y nunca van a Slack (aunque sean PPD).
   // "patron" se busca en el nombre y el RFC del emisor, sin acentos ni mayúsculas.
   siempre_tarjeta: [
-    { patron: 'AMAZON WEB SERVICES|\\bAWS\\b', motivo: 'Amazon Web Services siempre se paga con tarjeta' }
+    { patron: 'AMAZON WEB SERVICES|\\bAWS\\b', motivo: 'Amazon Web Services siempre se paga con tarjeta' },
+    { patron: '\\bAPOLLO\\b|ZENLEADS', motivo: 'Apollo.io siempre se paga con tarjeta' }
   ],
   ppd_siempre_slack: true,
   // Lo que el agente dejaría "por validar" se manda a Slack como pendiente de pago (mejor de más que atorado),
