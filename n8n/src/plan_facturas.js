@@ -58,6 +58,9 @@ function reglaFija(d, c, h) {
   if (norm(c.buzon).includes(norm(cfg.buzon_descartar))) return ['descartada', 'Llegó a soportefinanzas@: no se registra'];
   if (d.tipo === 'P') return ['complemento', 'Complemento de pago (CFDI tipo P): se registra aparte'];
   if (/cancel/i.test(d.estado_sat || '')) return ['descartada', 'Cancelada en el SAT'];
+  const txtEmisor = norm(`${d.emisor_nombre || ''} ${d.emisor_rfc || ''}`).toUpperCase();
+  const tarjetaFija = (cfg.siempre_tarjeta || []).find(t => new RegExp(t.patron, 'i').test(txtEmisor));
+  if (tarjetaFija) return ['pagada_tarjeta', `${tarjetaFija.motivo}: no se paga, se concilia`];
   if (esPPD(d)) {                                             // pago diferido: aún no se paga, siempre va a Slack
     const banregio = h && h.total >= 2 && h.banregio / h.total >= 0.5;
     return [banregio ? 'pagar_banregio' : 'pagar', `Método de pago PPD (pago diferido): siempre se avisa en Slack${banregio ? ' · se paga por Banregio' : ''}`];

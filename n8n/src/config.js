@@ -51,6 +51,11 @@ const config = {
   slack_desde: '',                      // 'YYYY-MM-DD': solo se avisan facturas con fecha desde ese día ('' = todas)
   // Facturas con método de pago PPD (pago en parcialidades o diferido): siempre son pendientes de pago y van a Slack,
   // salvo las de no_slack (bancos, Shipkraken, fideicomiso, compensación) y las ya pedidas en el canal (se sigue ese mensaje)
+  // Proveedores que siempre se pagan con tarjeta: quedan "tarjeta por conciliar" y nunca van a Slack (aunque sean PPD).
+  // "patron" se busca en el nombre y el RFC del emisor, sin acentos ni mayúsculas.
+  siempre_tarjeta: [
+    { patron: 'AMAZON WEB SERVICES|\\bAWS\\b', motivo: 'Amazon Web Services siempre se paga con tarjeta' }
+  ],
   ppd_siempre_slack: true,
   // Lo que el agente dejaría "por validar" se manda a Slack como pendiente de pago (mejor de más que atorado),
   // salvo tarjeta: proveedor que antes se pagó con Clara/Amex, o factura que dice que se cobró a tarjeta
