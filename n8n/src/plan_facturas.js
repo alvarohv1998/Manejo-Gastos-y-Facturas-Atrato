@@ -25,7 +25,7 @@ if ($('Claude').isExecuted) {
     const key = sol[i] && sol[i].json.key;
     if (!key) return;
     const j = r.json || {};
-    if (j.error) { ia.set(key, { ok: false, error: typeof j.error === 'string' ? j.error : (j.error.message || 'error') }); return; }
+    if (j.error) { ia.set(key, { ok: false, error: typeof j.error === 'string' ? j.error : (j.error.description || j.error.message || 'error') }); return; }   // description trae el motivo real (p. ej. PDF con contraseña)
     if (j.stop_reason === 'refusal') { ia.set(key, { ok: false, error: 'el modelo no quiso responder' }); return; }
     const t = (j.content || []).find(b => b.type === 'text');
     try {
