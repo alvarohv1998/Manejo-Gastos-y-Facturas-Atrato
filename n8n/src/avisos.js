@@ -49,6 +49,10 @@ if (esc.erroresSlack) avisos.push(`*Slack*: ${esc.erroresSlack} mensajes de fact
 const resumenPrueba = items('Slack: resumen prueba')[0];
 if (resumenPrueba && resumenPrueba.ok === false) avisos.push(`*Slack*: no se publicó el resumen de prueba (${resumenPrueba.error || errorDe(resumenPrueba)}).`);
 
+const reacciones = items('Slack: ✅ pagada');
+const sinPermiso = reacciones.find(j => j.ok === false && /missing_scope|not_allowed/.test(j.error || ''));
+if (sinPermiso) avisos.push(`*Slack*: no se pudo poner ✅ a las facturas pagadas por complemento (falta el permiso ${sinPermiso.needed || 'reactions:write'}). Sí se avisó en el hilo. Agrega el permiso a la app y dale "Reinstall to Atrato".`);
+
 // 5. Interfaz (artefacto)
 const datosInterfaz = items('Datos interfaz')[0];
 if (datosInterfaz && datosInterfaz.omitir) avisos.push(`*Interfaz*: ${datosInterfaz.motivo}`);

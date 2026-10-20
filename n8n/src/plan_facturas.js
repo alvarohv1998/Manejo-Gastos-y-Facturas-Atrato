@@ -78,7 +78,11 @@ const limite = new Date(Date.now() - C.meses_hacia_atras * 31 * 864e5).toISOStri
 const sinFactura = est.gastos.filter(o => ['OPEX', 'FIXED_ASSETS'].includes(o.tab) && !o.invoice && !/^no fac/i.test(o.receipt)
   && o.fecha && o.fecha >= limite && o.total !== null);
 const usados = new Set();
-const fxMes = fecha => est.fx[+String(fecha).slice(5, 7)] || null;
+const fxMes = fecha => {                          // si el mes aún no tiene dólar en el Budget, el último mes que sí lo tenga
+  for (let m = +String(fecha).slice(5, 7) || 12; m >= 1; m--) if (est.fx[m]) return est.fx[m];
+  const meses = Object.keys(est.fx).map(Number).sort((a, b) => b - a);
+  return meses.length ? est.fx[meses[0]] : null;
+};
 const tcDe = d => (d.moneda === 'USD' ? (d.tipo_cambio && d.tipo_cambio > 1 ? d.tipo_cambio : (fxMes(d.fecha) || 0)) : 1);
 function buscarGasto(d, tarjeta) {
   const monto = (d.total || 0) * tcDe(d);
@@ -94,7 +98,7 @@ function buscarGasto(d, tarjeta) {
 const plan = { facturas_nuevas: [], facturas_actualizar: [], filas_nuevas: [], actualizar: [], adjuntar: [], slack: [], revisar: [],
   validacion: [], bitacora: [], sin_conciliar: [], ignorados_banco: [], ignoradas: [] };
 const res = { facturas_nuevas: 0, gastos_creados: 0, relacionadas: 0, pendientes_pago: 0, por_validar: 0, por_conciliar: 0, descartadas: 0,
-  complementos: 0, no_factura: 0, ya_en_slack: 0, pagadas_slack: 0, no_slack: 0, reclasificadas: 0, slack_canal: 'no revisado', duplicadas: meta.duplicadas || 0, anteriores: meta.anteriores || 0, ia_errores: 0, sat_filas: meta.sat_filas || 0,
+  complementos: 0, no_factura: 0, ya_en_slack: 0, pagadas_slack: 0, no_slack: 0, reclasificadas: 0, pagadas_complemento: 0, slack_canal: 'no revisado', duplicadas: meta.duplicadas || 0, anteriores: meta.anteriores || 0, ia_errores: 0, sat_filas: meta.sat_filas || 0,
   conciliadas_banco: 0, filas_banco: 0 };
 const bit = (accion, objeto, campo, antes, despues, comentario) => plan.bitacora.push([ahora, 'n8n', 'n8n', accion, objeto, campo || '', antes ?? '', despues ?? '', comentario || '']);
 let temp = 0;
@@ -155,7 +159,13 @@ const satConsumidos = new Set();
 const uuidsVistos = new Set(est.facturas.map(f => String(f.UUID || '').toUpperCase()).filter(Boolean));
 const porUuid = new Map(est.facturas.filter(f => f.UUID).map(f => [String(f.UUID).toUpperCase(), f]));
 const satPorUuid = new Map(candidatos.filter(c => c.origen === 'sat').map(c => [c.key, c]));
-const orden = candidatos.slice().sort((a, b) => (a.origen === 'sat') - (b.origen === 'sat'));
+const esRecibo = c => (c.archivos || []).some(a => /receipt|recibo/i.test(a.nombre || ''));
+const orden = candidatos.slice().sort((a, b) => ((a.origen === 'sat') - (b.origen === 'sat')) || (esRecibo(b) - esRecibo(a)));
+// Firma para documentos sin UUID (invoices extranjeros): el invoice y su recibo, o el mismo PDF en dos correos, son una sola factura
+const firma = d => [norm(d.emisor_nombre || '').replace(/[^a-z0-9]/g, '').slice(0, 12), norm(d.folio || '').replace(/[^a-z0-9]/g, ''),
+  Math.round(Number(d.total || 0) * 100)].join('|');
+const firmasVistas = new Set(est.facturas.filter(f => !f.UUID && f.Folio && f.Emisor)
+  .map(f => firma({ emisor_nombre: f.Emisor, folio: `${f.Serie || ''}${f.Folio || ''}`, total: f.Total })));
 const anio = fecha => String(fecha || est.hoy).slice(0, 4);
 const carpeta = fecha => { const m = +String(fecha || est.hoy).slice(5, 7); return `${String(m).padStart(2, '0')}_${cap(MESES[m - 1])}`; };
 
@@ -169,6 +179,23 @@ if ($('SAT: descomprimir').isExecuted) {
   }
 }
 const archivoSat = uuid => ({ binary_key: `sat_${uuid.replace(/-/g, '')}`, ext: 'xml', nombre: `${uuid}.xml`, uuid });
+
+// ---------- Complementos de pago (CFDI tipo P): las facturas que pagan quedan pagadas ----------
+const pagadasPorComplemento = new Map();             // UUID de la factura pagada → folio del complemento
+for (const c of candidatos) {
+  const d = c.datos || {};
+  if (d.tipo !== 'P') continue;
+  const pagados = (d.docs_relacionados || []).map(doc => String(doc.uuid || '').toUpperCase()).filter(Boolean);
+  for (const u of pagados) pagadasPorComplemento.set(u, `${d.serie || ''}${d.folio || ''}` || String(d.uuid || '').slice(0, 8));
+  if (pagados.length) d.conceptos = `Paga: ${pagados.join(', ')}`.slice(0, 400);   // queda en FACTURAS para corridas futuras
+}
+const UUID_RE = /[0-9A-F]{8}-[0-9A-F]{4}-[0-9A-F]{4}-[0-9A-F]{4}-[0-9A-F]{12}/gi;
+for (const f of est.facturas) {
+  if (f.Tipo !== 'P' || !/^Paga:/.test(f.Conceptos || '')) continue;
+  for (const u of String(f.Conceptos).match(UUID_RE) || []) if (!pagadasPorComplemento.has(u.toUpperCase()))
+    pagadasPorComplemento.set(u.toUpperCase(), `${f.Serie || ''}${f.Folio || ''}` || String(f.UUID || '').slice(0, 8));
+}
+plan.pagadas_complemento = [];
 
 // ---------- Slack: lo que la gente ya pidió en el canal ----------
 // Antes de avisar de una factura se busca si alguien ya la mandó al canal (PDF con el UUID o la serie y folio en el nombre,
@@ -258,10 +285,21 @@ for (const c of orden) {
       }
     }
   }
+  // Duplicados dentro de la misma corrida: el mismo XML en dos correos, o el invoice y el recibo del mismo cargo
+  if (c.accion !== 'reclasificar' && c.accion !== 'adjuntar') {
+    if (d.uuid && !c.requiere_extraccion && uuidsVistos.has(d.uuid)) { res.duplicadas++; continue; }
+    if (!d.uuid && d.total) {
+      // mismo emisor + folio + total, o mismo correo + emisor + total (el recibo trae su propio número)
+      const fds = [d.folio && firma({ emisor_nombre: d.emisor_nombre, folio: `${d.serie || ''}${d.folio || ''}`, total: d.total }),
+        c.origen === 'correo' && String(c.key).includes(':') && `${String(c.key).split(':')[0]}|${firma({ emisor_nombre: d.emisor_nombre, folio: '', total: d.total })}`].filter(Boolean);
+      if (fds.some(x => firmasVistas.has(x))) { res.duplicadas++; continue; }
+      fds.forEach(x => firmasVistas.add(x));
+    }
+  }
   if (d.uuid) uuidsVistos.add(d.uuid);
 
   const h = historial(d.emisor_rfc, d.emisor_nombre);
-  const fija = d.uuid || d.emisor_rfc ? reglaFija(d, c, h) : null;
+  const fija = d.uuid || d.emisor_rfc || d.emisor_nombre ? reglaFija(d, c, h) : null;
   let clas, motivo, confianza;
   if (c.accion === 'reclasificar' && !fija && !(r && r.ok)) {
     // PDF con contraseña: no se va a poder leer nunca; se deja para revisión a mano y ya no se reintenta
@@ -327,6 +365,13 @@ for (const c of orden) {
     estado = sinSlack.estado || 'pagada';
     const nueva = plan.filas_nuevas.find(f => f.temp === gasto);
     if (nueva) nueva.campos.ref_banco = `n8n: ${sinSlack.motivo}`.slice(0, 120);
+  }
+  const complemento = d.uuid && pagadasPorComplemento.get(String(d.uuid).toUpperCase());
+  if (complemento && estado === 'pendiente_pago') {
+    estado = 'pagada'; res.pagadas_complemento++;
+    motivo = `Pagada: llegó su complemento de pago (${complemento}) · ${motivo}`;
+    const nueva = plan.filas_nuevas.find(f => f.temp === gasto);
+    if (nueva) nueva.campos.ref_banco = 'n8n: pagada (complemento de pago)';
   }
   let enSlack = null;
   if (estado === 'pendiente_pago' && (enSlack = yaEnSlack(d))) {
@@ -426,9 +471,24 @@ for (const f of est.facturas) {
   bit('cambió estado', f.Clave, 'Estado', 'por_validar', g.estado, 'Validada a mano: se generó el gasto');
 }
 
+// ---------- Facturas ya registradas que un complemento de esta corrida paga ----------
+for (const f of est.facturas) {
+  const u = String(f.UUID || '').toUpperCase();
+  const comp = u && pagadasPorComplemento.get(u);
+  if (!comp || !['pendiente_pago', 'por_conciliar'].includes(f.Estado)) continue;
+  if (plan.facturas_actualizar.some(x => x.fila === f.fila)) continue;
+  plan.facturas_actualizar.push({ fila: f.fila, key: f.Clave, cambios: { 'Estado': 'pagada', 'Motivo': `Pagada: llegó su complemento de pago (${comp})` } });
+  res.pagadas_complemento++;
+  bit('cambió estado', f.Clave, 'Estado', f.Estado, 'pagada', `Llegó su complemento de pago (${comp})`);
+  const ts = String(f['Slack ts'] || '').replace(/^'/, '');
+  if (ts && !ts.startsWith('{{')) plan.pagadas_complemento.push({ key: f.Clave, ts, complemento: comp, emisor: f.Emisor, total: f.Total, moneda: f.Moneda });
+  const g = est.gastos.find(o => f['Gasto ID'] && o.id === String(f['Gasto ID']));
+  if (g && String(g.ref).startsWith('n8n')) plan.actualizar.push({ tab: g.tab, fila: g.fila, id: g.id, cambios: { ref_banco: 'n8n: pagada (complemento de pago)' } });
+}
+
 // ---------- Facturas pendientes con mensaje en Slack: revisar si ya tienen ✅ ----------
 for (const f of est.facturas) {
-  if (f.Estado === 'pendiente_pago' && f['Slack ts'] && !String(f['Slack ts']).startsWith('{{')) {
+  if (f.Estado === 'pendiente_pago' && f['Slack ts'] && !String(f['Slack ts']).startsWith('{{') && !plan.pagadas_complemento.some(p => p.key === f.Clave)) {
     plan.revisar.push({ fila: f.fila, key: f.Clave, ts: String(f['Slack ts']), registrada: String(f.Registrada || '').slice(0, 10),
       emisor: f.Emisor, total: f.Total, moneda: f.Moneda, gasto: f['Gasto ID'] });
   }

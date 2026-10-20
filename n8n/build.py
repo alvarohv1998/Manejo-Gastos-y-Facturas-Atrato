@@ -366,6 +366,15 @@ def flujo_diario():
     f.add(si("¿Datos completos?", "!$json.omitir && !$json.error"), X(63), 380)
     f.add(http("Drive: actualizar interfaz", f"={{{{ {CFG}.urls.subirInterfaz }}}}", "PATCH", "drive",
                "={{ JSON.stringify($json.datos) }}", timeout=120000), X(64), 300, **UNA_VEZ, **REINTENTAR, **SEGUIR)
+    f.add(code("Pagadas por complemento", "pagadas_complemento"), X(59), 900)
+    f.add(si("¿Hay pagadas por complemento?", "!$json.ninguno"), X(60), 900)
+    f.add(http("Slack: ✅ pagada", SLACK + "reactions.add", "POST", "slack", "={{ JSON.stringify($json.reaccion) }}", lotes=(1, 700)), X(61), 900, **SEGUIR)
+    f.add(http("Slack: aviso pagada", SLACK + "chat.postMessage", "POST", "slack",
+               "={{ JSON.stringify($('Pagadas por complemento').item.json.hilo) }}", lotes=(1, 1200)), X(62), 900, **SEGUIR)
+    f.link("Fin", "Pagadas por complemento")
+    f.link("Pagadas por complemento", "¿Hay pagadas por complemento?")
+    f.link("¿Hay pagadas por complemento?", "Slack: ✅ pagada", 0)
+    f.link("Slack: ✅ pagada", "Slack: aviso pagada")
     f.link("Fin", "¿Actualizar interfaz?")
     f.link("Sheets: registrar corrida (prueba)", "¿Actualizar interfaz?")
     f.link("¿Actualizar interfaz?", "Sheets: Budget para interfaz", 0)

@@ -28,7 +28,7 @@ const dinero = (v, m) => (v === '' || v === null || v === undefined) ? 'sin mont
 const dmy = s => (s ? `${String(s).slice(8, 10)}/${String(s).slice(5, 7)}/${String(s).slice(2, 4)}` : 's/f');
 
 const out = [];
-for (const k of plan.slack) {
+for (const k of [...new Set(plan.slack)]) {                 // una factura, un mensaje
   const u = plan.facturas_actualizar.find(x => x.key === k);
   const f = nuevas[k] || (previas[k] && Object.assign({}, previas[k], u ? u.cambios : {}));
   if (!f) continue;

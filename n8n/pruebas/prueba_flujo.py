@@ -116,7 +116,7 @@ def nodo_fn(nombre, archivo):
 
 ARCHIVOS = ["config", "dia_habil", "pestanas_faltantes", "estado", "sat_preparar", "sat_leer", "leer_adjuntos", "pdf_a_releer", "combinar", "solicitudes_ia",
             "plan_facturas", "solicitudes_bancos", "plan", "metabase_csv", "carpetas_faltantes", "archivos_a_subir", "asignar_ids", "mensajes_slack", "revisar_reacciones", "recordatorios",
-            "escrituras", "correo_validacion", "resumen_prueba", "error_slack"]
+            "pagadas_complemento", "escrituras", "correo_validacion", "resumen_prueba", "error_slack"]
 
 ESCENARIO = r"""
 (async function(){
@@ -139,7 +139,8 @@ ESCENARIO = r"""
       filaFac({Clave:'msg9:invoice-oct.pdf',Fecha:'',Estado:'por_validar','Clasificación':'por_validar','Motivo':'El agente no respondió (Bad request): revisar a mano','Origen':'correo','Link Drive':'https://drive.google.com/file/d/1AbCdEfGhIjKlMnOpQrStUvWxYz012345/view'}),
       filaFac({Clave:'NC-1',UUID:'88888888-0000-0000-0000-000000000001',Tipo:'E',Fecha:'2026-10-08',Emisor:'GRUPO CONEKTAME','RFC emisor':'GCO010101AAA','RFC receptor':'ATE1905076I1',Subtotal:12931.03,IVA:2068.97,Total:15000,Moneda:'MXN','Método pago':'PUE','Forma pago':'03','Clasificación':'por_validar','Estado':'por_validar','Motivo':'Nota de crédito de un proveedor sin historial','Origen':'sat'}),
       filaFac({Clave:'VIEJA-1',UUID:'66666666-0000-0000-0000-000000000001',Tipo:'I',Fecha:'2026-10-06',Emisor:'HEALTHATOM MX','RFC emisor':'HMX010101AAA','RFC receptor':'ATE1905076I1',Subtotal:9306.25,IVA:1489,Total:10795.25,Moneda:'MXN','Método pago':'PUE','Forma pago':'03','Clasificación':'por_validar','Estado':'por_validar','Motivo':'Regla 5: proveedor nuevo sin historial','Origen':'correo'}),
-      filaFac({Clave:'PEND-1',UUID:'99999999-0000-0000-0000-000000000002',Tipo:'I',Fecha:'2026-09-28',Emisor:'ESPACIOS REFORMA',Total:18560,Moneda:'MXN','Estado':'pendiente_pago','Slack ts':'1791000000.000100','Registrada':'2026-09-28 09:05','Gasto ID':'26-3050','Link Drive':'https://drive.google.com/file/d/abc/view'})
+      filaFac({Clave:'PEND-1',UUID:'99999999-0000-0000-0000-000000000002',Tipo:'I',Fecha:'2026-09-28',Emisor:'ESPACIOS REFORMA',Total:18560,Moneda:'MXN','Estado':'pendiente_pago','Slack ts':'1791000000.000100','Registrada':'2026-09-28 09:05','Gasto ID':'26-3050','Link Drive':'https://drive.google.com/file/d/abc/view'}),
+      filaFac({Clave:'CONTA-1',UUID:'AAAAAAAA-BBBB-CCCC-DDDD-EEEEEEEEEEEE',Tipo:'I',Fecha:'2026-10-01',Emisor:'CONTALINK','RFC emisor':'CON150220HIA',Total:1160,Moneda:'MXN','Método pago':'PPD','Estado':'pendiente_pago','Slack ts':"'1791000000.000300",'Registrada':'2026-10-01 09:05'})
     ]},
     {values:[cfg.pestanas.BITACORA]},
     {values:[cfg.pestanas.N8N_SAT]}
@@ -164,7 +165,7 @@ ESCENARIO = r"""
     {json:{id:4, account:'AMEX', date:'2026-10-08T00:00:00Z', reference:'0004', amount:-999, currency:'MXN', description:'CARGO SIN FACTURA'}},
     {json:{id:5, account:'BBVA', date:'2026-10-08T00:00:00Z', reference:'0005', amount:5000, currency:'MXN', description:'ABONO'}}
   ];
-  BIN = {x1: XMLRUIZ, p1: '%PDF ruiz', p2: '%PDF uber', p3: '%PDF contrato', x4: XMLPAGO};
+  BIN = {x1: XMLRUIZ, p1: '%PDF ruiz', p2: '%PDF uber', p3: '%PDF contrato', x4: XMLPAGO, h1: '%PDF hex invoice', h2: '%PDF hex receipt'};
   OUT['Gmail: facturas'] = [
     {json:{id:'m1', subject:'Factura A-1188', from:{text:'cxc@ruiz.mx'}, to:{text:'facturacion@atratopago.com'}, date:'2026-10-10T16:00:00Z'},
      binary:{attachment_0:{id:'x1', fileName:'A1188.xml', fileExtension:'xml', mimeType:'text/xml'}, attachment_1:{id:'p1', fileName:'A1188.pdf', fileExtension:'pdf', mimeType:'application/pdf'}}},
@@ -173,7 +174,11 @@ ESCENARIO = r"""
     {json:{id:'m3', subject:'Contrato de servicios', from:{text:'legal@algo.com'}, to:{text:'alvaro@atratopago.com'}, date:'2026-10-10T18:00:00Z'},
      binary:{attachment_0:{id:'p3', fileName:'contrato.pdf', fileExtension:'pdf', mimeType:'application/pdf'}}},
     {json:{id:'m4', subject:'REP', from:{text:'contalink'}, to:{text:'facturacion@atratopago.com'}, date:'2026-10-10T19:00:00Z'},
-     binary:{attachment_0:{id:'x4', fileName:'REP.xml', fileExtension:'xml', mimeType:'text/xml'}}}
+     binary:{attachment_0:{id:'x4', fileName:'REP.xml', fileExtension:'xml', mimeType:'text/xml'}}},
+    {json:{id:'m5', subject:'Facturas Contalink', from:{text:'cxc@ruiz.mx'}, to:{text:'facturacion@atratopago.com'}, date:'2026-10-10T20:00:00Z'},
+     binary:{attachment_0:{id:'x1', fileName:'A1188-copia.xml', fileExtension:'xml', mimeType:'text/xml'}}},
+    {json:{id:'m6', subject:'Your receipt from Hex', from:{text:'billing@hex.tech'}, to:{text:'alvaro@atratopago.com'}, date:'2026-10-10T21:00:00Z'},
+     binary:{attachment_0:{id:'h1', fileName:'Invoice-ABC123-0007.pdf', fileExtension:'pdf', mimeType:'application/pdf'}, attachment_1:{id:'h2', fileName:'Receipt-2911-4410.pdf', fileExtension:'pdf', mimeType:'application/pdf'}}}
   ];
   await correr('Leer adjuntos', F_leer_adjuntos, OUT['Gmail: facturas']);
   BIN.pd = '%PDF releido';
@@ -187,6 +192,7 @@ ESCENARIO = r"""
     var base = {es_factura:true,uuid:null,tipo_comprobante:null,fecha:null,serie:null,folio:null,rfc_emisor:null,nombre_emisor:null,rfc_receptor:null,subtotal:null,iva:null,iva_retenido:null,isr_retenido:null,total:null,moneda:null,forma_pago:null,metodo_pago:null,conceptos:null,clasificacion:'pagar',categoria:null,area:null,tipo_gasto:null,metodo_pago_sugerido:null,confianza:0.9,motivo:'prueba'};
     if (k === 'msg9:invoice-oct.pdf') r = Object.assign(base, {tipo_comprobante:'extranjero', fecha:'2026-10-03', nombre_emisor:'Fivetran Inc', total:1940.57, moneda:'USD', clasificacion:'por_validar', categoria:'Technology', area:'Data', tipo_gasto:'Variable', confianza:0.6, motivo:'Proveedor sin historial claro'});
     else if (k === '55300B91-6F6D-4362-9D97-97DC2631F7C9') r = Object.assign(base, {uuid:k, tipo_comprobante:'I', fecha:'2026-10-15', rfc_emisor:'BCD170331S54', nombre_emisor:'BT CDMX', rfc_receptor:'ATE1905076I1', total:9860, moneda:'USD', clasificacion:'pagar', categoria:'Professional Services', area:'Finance', tipo_gasto:'Fixed', metodo_pago_sugerido:'BBVA', confianza:0.9, motivo:'Baker Tilly: servicios contables, se paga por transferencia en USD'});
+    else if (k.indexOf('m6:') === 0) r = Object.assign(base, {tipo_comprobante:'extranjero', fecha:'2026-10-09', nombre_emisor:'Hex Technologies Inc.', folio: k.indexOf('Receipt') > 0 ? '2911-4410' : 'ABC123-0007', total:120, moneda:'USD', clasificacion: k.indexOf('Receipt') > 0 ? 'pagada_tarjeta' : 'pagar', categoria:'Technology', area:'Data', tipo_gasto:'Variable'});
     else if (k.indexOf('m2:') === 0) r = Object.assign(base, {uuid: UUBER.toLowerCase(), tipo_comprobante:'I', fecha:'2026-10-07', rfc_emisor:'UMT140725LP3', nombre_emisor:'Uber', rfc_receptor:'ATE1905076I1', total:615.3, moneda:'MXN', forma_pago:'04', conceptos:'Viaje CDMX', clasificacion:'pagada_tarjeta', categoria:'Travel', area:'Operations', tipo_gasto:'Variable', metodo_pago_sugerido:'Clara'});
     else if (k === UTELCEL) r = Object.assign(base, {clasificacion:'pagar', categoria:'Technology', area:'Tech', tipo_gasto:'Fixed', metodo_pago_sugerido:'BBVA', confianza:0.92, motivo:'Historial Telcel en Technology/Tech'});
     else if (k === URUIZ) r = Object.assign(base, {clasificacion:'pagar', categoria:'Professional Services', area:'Finance', tipo_gasto:'Fixed'});
@@ -222,6 +228,7 @@ ESCENARIO = r"""
   await correr('Revisar ✅', F_revisar_reacciones, OUT['Mensajes Slack']);
   OUT['Slack: reacciones'] = OUT['Revisar ✅'].map(() => ({json:{ok:true, message:{reactions:[{name:'eyes'}]}}}));
   await correr('Recordatorios', F_recordatorios, OUT['Slack: reacciones']);
+  await correr('Pagadas por complemento', F_pagadas_complemento, [{json:{}}]);
   await correr('Escrituras', F_escrituras, OUT['Recordatorios']);
   await correr('Correo de validación', F_correo_validacion, OUT['Escrituras']);
   await correr('Resumen prueba', F_resumen_prueba, OUT['Plan']);
@@ -239,7 +246,7 @@ ESCENARIO = r"""
     metabase_csv: MB.map(x => x.json), plan: OUT['Plan'][0].json, bancos_ia: OUT['Solicitudes IA bancos'].map(x => x.json.ids || x.json),
     carpetas: OUT['Carpetas faltantes'].map(x=>x.json), subir: OUT['Archivos a subir'].map(x=>x.json),
     ids: OUT['Asignar IDs'][0].json, slack: OUT['Mensajes Slack'].map(x=>x.json), recordatorios: OUT['Recordatorios'].map(x=>x.json),
-    escrituras: OUT['Escrituras'][0].json,  correo: OUT['Correo de validación'][0].json.asunto, prueba: OUT['Resumen prueba'][0].json.cuerpo.text});
+    pagadas_complemento: OUT['Pagadas por complemento'].map(x=>x.json), escrituras: OUT['Escrituras'][0].json,  correo: OUT['Correo de validación'][0].json.asunto, prueba: OUT['Resumen prueba'][0].json.cuerpo.text});
  } catch(e) { RESULT = JSON.stringify({ok:false, error: String(e), stack: e.stack}); }
 })();
 var RESULT = 'sin terminar';
